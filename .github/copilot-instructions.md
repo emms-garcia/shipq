@@ -2,7 +2,7 @@
 
 ## Project context
 
-Shipq is a local-first GitHub PR manager with a CLI and a macOS application.
+Shipq is a local-first GitHub PR manager focused on a macOS application.
 The repository currently contains Spec Kit tooling and the initial feature
 specification. The architecture below is the agreed target, not implemented code.
 
@@ -14,11 +14,11 @@ The initial feature lives in `specs/001-pr-management/`.
 
 - Use hexagonal architecture: a shared Go core owns business rules and
   application use cases; ports describe the external capabilities it needs.
-  Dependencies point inward. The core must not depend on Flutter, CLI parsing,
+  Dependencies point inward. The core must not depend on Flutter,
   concrete GitHub clients, SQLite, or operating-system integrations.
-- The Go CLI and Flutter application are presentation/driving adapters over the
-  same application operations. Neither reimplements approval counting, filter
-  evaluation, segment membership, or transition detection.
+- The Flutter application is a presentation/driving adapter over Go application
+  operations. It does not reimplement approval counting, filter evaluation,
+  segment membership, or transition detection. A user-facing CLI is out of scope.
 - GitHub access and SQLite persistence are infrastructure adapters implementing
   core-facing ports. Normalize external and stored representations at those
   boundaries rather than exposing them as domain models.
@@ -27,9 +27,9 @@ The initial feature lives in `specs/001-pr-management/`.
   not hypothetical future services.
 - Platform adapters own credential storage, desktop notification delivery, and
   background-process lifecycle. Core monitoring operations must be callable
-  independently of an open Flutter window or CLI session.
+  independently of an open Flutter window.
 - The proposed implementation plan selects one Go application host owning
-  SQLite and monitoring, with Flutter and the CLI calling HTTP/JSON over a
+  SQLite and monitoring, with Flutter calling HTTP/JSON over a
   private Unix socket. See `specs/001-pr-management/plan.md` and its contracts;
   this is a design selection awaiting plan review, not implemented infrastructure.
 - SQLite is the MVP persistence adapter, not the definition of core behavior.
@@ -43,11 +43,12 @@ The initial feature lives in `specs/001-pr-management/`.
 
 - PR authorship and approver identity are independent filter dimensions.
   Exactly two approvals and at least two approvals are distinct operators.
-- Both interfaces use the same rule semantics and persisted configuration.
+- Ad hoc browsing, saved segments, and monitoring use the same rule semantics
+  and persisted configuration.
 - Initial matches appear in PR listings, not desktop notifications or transition
   history. Notifications describe subsequent observed membership changes.
 - Failed or incomplete refreshes must not create false segment exits. Preserve
-  trustworthy baselines and avoid duplicate events across clients and restarts.
+  trustworthy baselines and avoid duplicate events across app sessions and restarts.
 - MVP GitHub access is read-only. Local watching does not change remote
   subscriptions.
 
@@ -69,7 +70,7 @@ not yet been created.
   Do not impose a repository-wide coverage percentage initially.
 - Percentage coverage does not replace explicit behavioral cases. Cover filter
   semantics, effective reviews, pagination, persistence, offline behavior,
-  interface parity, and especially cases that must not generate notifications,
+  app/core consistency, and especially cases that must not generate notifications,
   including initial matches, rule edits, incomplete refreshes, and replay after
   restart.
 - CI must check Go formatting, run vet, race-enabled tests, and collect/enforce

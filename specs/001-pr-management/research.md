@@ -1,24 +1,25 @@
 # Architecture Research and Decisions
 
 **Date**: 2026-11-10
-**Scope**: Go core/CLI, Flutter presentation, local macOS MVP, future extension
+**Scope**: Go core, Flutter presentation, local macOS app MVP, future extension
 boundaries without implementing export/import or cloud synchronization.
 
 These are design selections for review in the planning PR, not implemented or
 benchmarked capabilities. The user already agreed to Go, Flutter, SQLite,
 hexagonal architecture, and the testing policy. Further confirmation was
 unavailable during planning, so the bridge and authentication choices below use
-the recommended defaults and explicitly disclose their tradeoffs.
+the recommended defaults and explicitly disclose their tradeoffs. The user
+subsequently removed the product CLI; this design now targets only the macOS app.
 
 ## 1. One local application host; HTTP/JSON over a Unix socket
 
 **Decision**: The Go host owns the core, SQLite, scheduling coordination, and
-outbox. Flutter and the thin Go CLI call a versioned local HTTP/JSON adapter over
+outbox. Flutter calls a versioned local HTTP/JSON adapter over
 a private Unix socket. The core itself remains a reusable Go library independent
 of this process composition.
 
 **Rationale**: One state owner avoids competing schedulers/database writers and
-supports background monitoring without Flutter or an attached terminal.
+supports background monitoring without the Flutter process.
 Dart documents `HttpClient.connectionFactory` with
 `Socket.startConnect(InternetAddress(path, type: InternetAddressType.unix), 0)`
 as its Unix-socket pattern. Standard Go `net/http` can serve a Unix listener.
@@ -92,7 +93,7 @@ distributed client secret.
 **Important tradeoff**: Classic `repo` scope includes write capabilities.
 Shipq remains read-only by application design, not by token permissions.
 Show the requested scope and explain it before login. The GitHub adapter exposes
-only read operations; no token reaches Flutter, CLI output, local API responses,
+only read operations; no token reaches Flutter, local API responses,
 rule definitions, or logs. Organization policies can still deny access.
 
 **Alternatives considered**: A GitHub App provides narrower permissions but its
@@ -190,8 +191,8 @@ Sources:
 **Decision**: Use `database/sql` with `modernc.org/sqlite` as the SQLite adapter,
 ordered SQL migrations embedded in that adapter, WAL, foreign keys, bounded
 busy timeouts, and one host writer. No ORM or generic persistence framework.
-Use Go standard HTTP/JSON/logging/testing packages, Cobra for the CLI command
-surface, and UUID record IDs. Flutter uses `dart:io` for the local client and
+Use Go standard HTTP/JSON/logging/testing packages and UUID record IDs.
+Flutter uses `dart:io` for the local client and
 its standard testing tools. Keep platform integration in a small Swift adapter.
 
 **Rationale**: The SQLite driver is CGo-free and documents darwin arm64/amd64
@@ -213,7 +214,6 @@ path. A cloud replica engine is unnecessary before sync is in scope.
 
 Sources:
 - https://pkg.go.dev/modernc.org/sqlite
-- https://github.com/spf13/cobra
 - https://go.dev/dl/
 - https://docs.flutter.dev/install/archive
 - https://docs.flutter.dev/platform-integration/macos/building
@@ -226,8 +226,8 @@ well-covered domain does not hide untested workflows. No global or Flutter
 percentage target initially.
 
 Use temporary real SQLite databases, injected clocks/identities/ports, fixture
-GitHub responses, shared Go/Dart protocol examples, Flutter widget tests, and a
-small cross-client end-to-end suite. Add deterministic architecture import
+GitHub responses, shared Go API/Dart client protocol examples, Flutter widget
+tests, and a small app-to-core end-to-end suite. Add deterministic architecture import
 checks and core race tests. Reserve live GitHub and signed platform tests for
 explicit opt-in smoke/release validation.
 

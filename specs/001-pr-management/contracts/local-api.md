@@ -3,8 +3,8 @@
 ## Transport and ownership
 
 The Go application host owns the core, adapters, SQLite, refresh coordination,
-and notification outbox. The Go CLI and Flutter app call the same HTTP/JSON
-application API over a Unix-domain socket. This is local IPC, not a cloud API.
+and notification outbox. The Flutter app calls its HTTP/JSON application API
+over a Unix-domain socket. This is internal IPC, not a public or cloud API.
 Future mobile embedding is a separate host adapter, not part of this feature.
 
 The socket lives in a short per-user runtime directory (directory mode `0700`,
@@ -20,8 +20,8 @@ access is enabled. Socket access protects against other OS users, not arbitrary
 malicious programs already running as the same user.
 
 DTOs and application operations are explicitly mapped at this adapter boundary;
-the core does not import HTTP or JSON types. A shared client-schema fixture
-suite verifies the Go and Dart clients against the same examples.
+the core does not import HTTP or JSON types. A shared schema-fixture suite
+verifies the Go API adapter and Dart client against the same examples.
 
 ## Operations
 
@@ -53,9 +53,9 @@ suite verifies the Go and Dart clients against the same examples.
 | `POST /v1/platform/notification-authorization` | Request authorization through the signed native helper after user intent |
 
 Service registration/start/stop is a host-platform operation, not a generic
-business use case. CLI `service` commands and Flutter lifecycle controls use the
-macOS adapter. Notification authorization cannot be requested implicitly by a
-background refresh.
+business use case. Flutter lifecycle controls use the macOS adapter; normal
+onboarding requires no terminal commands. Notification authorization cannot be
+requested implicitly by a background refresh.
 
 ## Request and response shapes
 
@@ -104,7 +104,7 @@ fresh results for page two of an old query.
 Authorization-session creation returns a session ID, verification URL, short
 user code, expiry, and polling guidance. The host owns the device code and token
 exchange. The verification URL is validated against GitHub's documented host
-before opening it. The CLI/UI never receive the resulting token.
+before opening it. Flutter never receives the resulting token.
 
 ## Errors and concurrency
 
@@ -128,12 +128,12 @@ are idempotent.
 
 ## Client behavior
 
-Flutter and the CLI retain no authoritative configuration store. They can read
-cached state through an offline-capable host without reaching GitHub.
+Flutter retains no authoritative configuration store. It can read cached state
+through an offline-capable host without reaching GitHub.
 Flutter polls host/job status while visible; push streams are deferred.
 Connection loss shows host-unavailable state, not an empty PR list.
 
 Close Window, Pause Monitoring, Disable Monitoring, and Quit Background Service
-are distinct actions. Opening a client after explicit service stop must not
+are distinct actions. Opening the app after explicit service stop must not
 silently restart monitoring. Installing/enabling login startup requires visible
 user consent and macOS approval.

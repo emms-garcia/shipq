@@ -2,8 +2,8 @@
 
 ## Ownership and representation
 
-The Go domain defines and evaluates one typed condition tree. CLI parsing and
-Flutter controls construct that tree; neither implements a second evaluator.
+The Go domain defines and evaluates one typed condition tree. Flutter controls
+construct that tree without implementing a second evaluator.
 Storage and client DTOs map to the domain at their boundaries.
 
 A saved definition contains `format_version: 1`, a `condition`, and an explicit

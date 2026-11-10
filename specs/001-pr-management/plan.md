@@ -7,16 +7,16 @@
 
 ## Summary
 
-Build Shipq as a shared Go application core using hexagonal architecture, a thin
-Go CLI, and Flutter desktop presentation. A single per-user Go host owns SQLite
-and monitoring; both clients use a private Unix-socket HTTP/JSON adapter.
+Build Shipq as a Go application core using hexagonal architecture and Flutter
+desktop presentation. A single per-user Go host owns SQLite and monitoring;
+the macOS app uses a private Unix-socket HTTP/JSON adapter.
 A small signed Swift platform helper supplies macOS Keychain and notifications;
 `SMAppService` manages approved per-user background startup.
 
 The MVP is local-only and read-only toward GitHub PRs. Flexible rule trees,
 effective-review normalization, immutable result pagination, trustworthy
 membership baselines, and transactional history/outbox processing supply
-consistent results across interfaces. Preserve ports and durable record formats
+consistent results across browsing, segments, and monitoring. Preserve ports and durable record formats
 for future export/import and cloud adapters without building those features.
 
 ## Technical Context
@@ -27,7 +27,7 @@ locks are pinned during scaffolding under the [version policy](research.md).
 This planning PR does not invent an unverified current release number.
 
 **Primary Dependencies**: Go standard `net/http`, `encoding/json`, `database/sql`,
-`log/slog`, and testing packages; Cobra; `modernc.org/sqlite`; UUID generation.
+`log/slog`, and testing packages; `modernc.org/sqlite`; UUID generation.
 Flutter `dart:io` local client and Flutter test/integration-test tooling.
 Native Swift ServiceManagement, Security, and UserNotifications frameworks.
 
@@ -36,7 +36,7 @@ migrations. Keychain stores GitHub credentials. User configuration, cache,
 baseline state, and notification history/outbox have explicit boundaries.
 
 **Testing**: Table-driven core tests; fake ports/clocks; real temporary SQLite
-integration tests; fixture-backed GitHub tests; Go/Dart protocol parity fixtures;
+integration tests; fixture-backed GitHub tests; Go API/Dart client contract fixtures;
 Flutter widget tests; limited end-to-end scenarios. Race-enabled Go tests,
 90% statement coverage independently for domain and application groups, no
 repository-wide or Flutter percentage quota. Signed native smoke tests are
@@ -46,12 +46,12 @@ separate from routine offline CI.
 Validate the pinned Flutter release's deployment floor. Future Windows/Linux
 hosts or mobile embedding are separate adapters, not MVP deliverables.
 
-**Project Type**: Local application core/library, CLI, background host, and
+**Project Type**: Local application core/library, background host, and
 Flutter desktop app in one repository.
 
 **Performance Goals**: With 10,000 cached PRs and 100 representative segments,
-95th-percentile first-page latency at most two seconds through each release-mode
-client. Reference class: Apple Silicon Mac, at least 8 GiB RAM and SSD; record
+95th-percentile first-page latency at most two seconds through the release-mode
+app. Reference class: Apple Silicon Mac, at least 8 GiB RAM and SSD; record
 the exact machine/OS/toolchains in benchmark results. Healthy monitoring records
 and submits qualifying notifications within the interval plus 60 seconds;
 service-limit delays remain explicit.
@@ -77,7 +77,7 @@ current project constraints; do not silently ratify a constitution in this PR.
 
 | Agreed constraint | Before design | After design |
 |------------------|---------------|--------------|
-| Go core, Flutter presentation, thin CLI | Pass: required inputs | Pass: both clients call shared application operations |
+| Go core, Flutter macOS presentation, no product CLI | Pass: revised user scope | Pass: the app calls shared application operations |
 | Hexagonal dependencies and no duplicated rules | Pass: required boundary | Pass: core-facing ports, boundary mappers, import checks |
 | Local MVP, SQLite adapter, no cloud sync | Pass: bounded scope | Pass: no cloud service or speculative sync engine |
 | Initial matches list only; notifications track subsequent observations | Pass: specified invariant | Pass: explicit baseline epochs and unknown-state handling |
@@ -102,7 +102,7 @@ specs/001-pr-management/
   contracts/
     rules.md
     local-api.md
-    cli.md
+    desktop.md
 ```
 
 `tasks.md` is produced by `/speckit-tasks` only after review of this plan.
@@ -110,7 +110,7 @@ specs/001-pr-management/
 ### Planned source structure
 
 ```text
-cmd/shipq/                    # CLI entry point; foreground host subcommand
+cmd/shipq-host/               # Internal bundled host entry point, not a product CLI
 internal/domain/             # PR/review values, segment rules, pure transitions
 internal/application/        # Use cases and narrow core-facing ports
 internal/adapters/github/    # GitHub HTTP DTOs, pagination, normalization
@@ -151,8 +151,8 @@ parity fixtures before replacing any evaluation path.
 ### Process ownership and lifecycle
 
 The application host is the sole database writer and refresh/outbox coordinator.
-CLI and Flutter use the [local contract](contracts/local-api.md); opening a
-second client does not start another monitor. Private socket permissions and a
+Flutter uses the [local contract](contracts/local-api.md); opening another app
+window does not start another monitor. Private socket permissions and a
 process-ownership lock isolate local profiles. No TCP listener or remote API.
 
 The signed desktop bundle embeds the Go host and Swift platform helper.
@@ -165,8 +165,9 @@ Closing a Flutter window does not stop the host. Pause disables scheduled
 refreshes while preserving cached functionality; explicit service stop disables
 automatic relaunch until an explicit start. Native registration state is shown
 separately from monitoring preferences and refresh health.
-The CLI can also run a foreground host for development without desktop service
-installation. Notifications require the bundled native platform capability;
+Developer tooling can run the host in the foreground without desktop service
+installation; users do not need terminal commands for normal app operation.
+Notifications require the bundled native platform capability;
 absence is reported, not concealed by a fake success.
 
 ### Refresh and query pipeline
@@ -198,9 +199,10 @@ It renders core summaries and errors instead of reproducing domain decisions.
 Show stale/partial/unknown results, authorization failures, service approval,
 notification permission, and revision conflicts explicitly.
 
-The [CLI contract](contracts/cli.md) provides concise count/identity flags,
-full grouped JSON definitions, stable structured output, history, and lifecycle
-controls. Both clients use the same fixture-backed application contract.
+The [desktop contract](contracts/desktop.md) defines account/scope onboarding,
+filter operators and grouping, saved segments, paginated results, history, and
+lifecycle controls. App tests compare these workflows against fixture-backed
+core expectations. No product CLI or terminal output contract is included.
 
 ## Implementation Sequence and Acceptance Gates
 
@@ -209,13 +211,13 @@ controls. Both clients use the same fixture-backed application contract.
    notification spike. Verify device-flow registration and review-normalization
    fixtures. This is bounded integration validation, not full product behavior.
 2. **Browsing vertical slice (US1)**: domain values, GitHub adapter, persistence,
-   account/scope and cached paginated listings through both clients.
+   account/scope and cached paginated listings in the macOS app.
 3. **Segments vertical slice (US2)**: shared evaluator, grouped rule editing,
    identity resolution, saved definitions, optimistic edits, and watches.
 4. **Transitions/control (US3/US4)**: baselines, outbox/history, monitor controls,
    restart recovery, backoff, native notifications, and offline behavior.
 5. **MVP release gates**: core coverage and race checks, real SQLite migrations,
-   client parity, signed lifecycle tests, and measured performance outcomes.
+   app/core consistency, signed lifecycle tests, and measured performance outcomes.
 
 Do not generate implementation task IDs or application code in this phase.
 Each later slice includes tests for its new behavior, including negative cases;
@@ -226,14 +228,14 @@ do not defer all tests to the end or chase coverage through trivial assertions.
 | Requirements | Design location |
 |--------------|-----------------|
 | FR-001, FR-002 | Device-flow/Keychain decisions; account routes and lifecycle |
-| FR-003, FR-004 | Repository discovery, backfill, frozen queries, CLI/UI lists |
+| FR-003, FR-004 | Repository discovery, backfill, frozen queries, app lists |
 | FR-005 through FR-008 | Versioned rule AST, typed identity sets, review normalization |
 | FR-009, FR-010 | Versioned user-owned segments/watches and revision checks |
 | FR-011 through FR-014 | Baseline epochs, transactional history/outbox, native notifier |
 | FR-015 through FR-018 | Per-user host, explicit controls, backoff, cached operations |
 | FR-019 through FR-021 | Single SQLite owner, stable record boundaries, shared API |
 | FR-022 | Read-only GitHub port; no PR mutation operations |
-| SC-001 through SC-007 | Fixture, restart, offline, timing, parity and benchmark checks in quickstart |
+| SC-001 through SC-007 | Fixture, restart, offline, timing, app/core consistency and benchmark checks in quickstart |
 
 ## Complexity Tracking
 

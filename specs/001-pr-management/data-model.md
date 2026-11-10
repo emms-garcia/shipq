@@ -73,14 +73,14 @@ entry for that retry.
 
 ## Transactions and concurrency
 
-- One application host owns the SQLite connection pool and mutations. Clients
-  never open the database directly. Migrations run before accepting commands.
+- One application host owns the SQLite connection pool and mutations. The app
+  never opens the database directly. Migrations run before accepting requests.
 - Commit observation publication and dependent baseline/event/outbox changes
   atomically per PR; the run may report partial repository coverage.
 - Application ports express `commit observation and evaluations` and `save
   segment if revision matches`, not SQL operations or generic arbitrary
   repositories.
-- Edits carry `expected_revision`; conflicting clients receive a conflict and
+- Edits carry `expected_revision`; conflicting app windows receive a conflict and
   current revision. Do not silently overwrite a newer segment or preference.
 - Maintain foreign keys, unique identity constraints, and indexes for
   profile/repository/state/update time, reviewers, and outbox status.

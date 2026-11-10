@@ -27,7 +27,7 @@ cd ../..
 make build
 ```
 
-`make build` builds the CLI/host and debug desktop app with its native platform
+`make build` builds the internal Go host and debug desktop app with its native platform
 helper. `make check` checks Go formatting, runs vet, race-enabled Go tests,
 the core coverage gate, Dart formatting, Flutter analysis, and Flutter tests.
 Implementation must add and document these targets, not assume they exist.
@@ -67,7 +67,7 @@ domain has many more statements.
 The implementation must supply a scenario driver under `tests/fixtures/` that
 implements the GitHub port without real tokens or network access. The driver
 advances explicit scenario steps through a test-only control interface, not the
-production API. Configure both clients to connect to the fixture host's isolated
+production API. Configure the app to connect to the fixture host's isolated
 socket; it uses a temporary data directory and fake platform adapters.
 
 Planned scenario commands:
@@ -75,27 +75,25 @@ Planned scenario commands:
 ```sh
 make fixture-host
 
-# In a second terminal; the fixture target prints its socket and environment.
-shipq pr list --org example --approvals '=2' --output json
-shipq pr list --org example --approvals '>=2' --exclude-author me --output json
-shipq pr list --org example --approvals '>=2' --approved-by me --output json
-shipq segment create --name two-plus-mine --approvals '>=2' --approved-by me --notify both
-shipq monitor refresh
-shipq history list --output json
+# In a second terminal; development tooling launches Flutter against the fixture host.
+make run-desktop-fixture
 ```
 
-The target prints the exact `SHIPQ_SOCKET` value and executable path for that
-run; test fixtures may not silently use the user's production profile or
-Keychain. No test-only account injection/control is compiled into release builds.
+The targets print the exact socket path and pass it to the Flutter test client
+for that run; test fixtures may not silently use the user's production profile
+or Keychain. No test-only account injection/control is compiled into release
+builds. These are development tools, not a user-facing application CLI.
 
 ### Acceptance sequence
 
 1. Seed two organizations, at least three repositories, and PRs authored by self
-   and others, with one/two/three approvals and different reviewers. Compare CLI
-   and Flutter IDs for exact/minimum counts, authorship, and approver filters.
-2. Save the compound segment in either interface and inspect it in the other.
-   Verify names and readable rule summaries; revise with expected revisions and
-   prove a stale edit returns a conflict rather than overwriting newer work.
+   and others, with one/two/three approvals and different reviewers. In the app,
+   select exactly two versus at least two approvals, exclude authored PRs, and
+   independently require self's approval. Compare IDs with the core's expected set.
+2. Save a compound segment, reopen it in a new app session, and compare its
+   membership with the ad hoc filter. Verify names and readable rule summaries;
+   edit from two windows and prove a stale revision returns a conflict rather
+   than overwriting newer work.
 3. Perform the first refresh. Existing matches appear in listings; history and
    the fake notifier remain empty.
 4. Advance fixture state through draft-to-ready, one-to-two approvals, addition
@@ -106,8 +104,8 @@ Keychain. No test-only account injection/control is compiled into release builds
    membership to prove legitimate repeated entries are not over-deduplicated.
 6. Inject a failure on a later review page and repository access revocation.
    Keep trusted baselines, show partial coverage, and generate no false exits.
-7. Disable networking. Both clients browse cache, edit rules, and read history.
-   A `--require-fresh` query fails explicitly while a cached query stays usable.
+7. Disable networking. The app browses cache, edits rules, and reads history.
+   A fresh-data request reports unavailable status while cached queries stay usable.
 8. Walk a stable paginated snapshot while another refresh changes PRs. Verify
    no duplicates/omissions. Expire the snapshot and require restarting at page one.
 9. Deny notification permission and inject notifier failure/ambiguous completion.
@@ -124,12 +122,13 @@ routine fixture tests. No production PR mutation is automated by Shipq.
 - Connect using device flow, inspect scopes/identity, and authorize an
   organization if permitted. Confirm private data is visible only where allowed.
 - Register the per-user background service with explicit consent. Close all
-  Flutter windows and CLI sessions, then trigger a known PR change externally.
+  Flutter windows and terminate the Flutter process, then trigger a known PR
+  change externally.
   Verify refresh/history and native notification submission without the Flutter
   process. Verify permission denial is observable.
 - Log out/in and test approved login startup, then disable it in System Settings
   and show the approval state accurately.
-- Pause, quit the background service, reopen a client, and verify no silent
+- Pause, quit the background service, reopen the app, and verify no silent
   restart of monitoring. Explicitly start/resume it and verify recovery.
 - Sleep/wake and disconnect/reconnect networking. Compare last trustworthy state
   with the next observation; do not claim unseen intermediate transitions.
@@ -141,13 +140,13 @@ routine fixture tests. No production PR mutation is automated by Shipq.
 Benchmark on an Apple Silicon Mac with at least 8 GiB RAM and an SSD, recording
 the exact model, OS, SDK versions, and build mode in results. Seed 10,000 PRs and
 100 representative segments, including grouped review predicates. Run at least
-100 first-page queries in each release-mode client; the 95th percentile must be
-at most two seconds, including IPC and client rendering, not only SQL execution.
+100 first-page queries in the release-mode app; the 95th percentile must be
+at most two seconds, including IPC and UI rendering, not only SQL execution.
 
 Measure refresh-to-outbox timing against the configured interval plus 60 seconds
 under healthy fixture conditions. Report service backoff separately. Core race
-tests, persistence migrations, parity fixtures, and signed native notification/
-lifecycle checks must pass before calling the macOS MVP complete.
+tests, persistence migrations, app/core consistency fixtures, and signed native
+notification/lifecycle checks must pass before calling the macOS MVP complete.
 
 ## Checks available in the planning PR
 
