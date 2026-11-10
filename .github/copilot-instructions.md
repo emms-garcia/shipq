@@ -28,10 +28,10 @@ The initial feature lives in `specs/001-pr-management/`.
 - Platform adapters own credential storage, desktop notification delivery, and
   background-process lifecycle. Core monitoring operations must be callable
   independently of an open Flutter window.
-- The proposed implementation plan selects one Go application host owning
+- The merged implementation plan selects one Go application host owning
   SQLite and monitoring, with Flutter calling HTTP/JSON over a
   private Unix socket. See `specs/001-pr-management/plan.md` and its contracts;
-  this is a design selection awaiting plan review, not implemented infrastructure.
+  this is an accepted design, not implemented infrastructure.
 - SQLite is the MVP persistence adapter, not the definition of core behavior.
   Preserve durable identities and explicit record versions for user-owned data.
   Keep credentials and disposable GitHub caches separate from portable records.
