@@ -35,6 +35,7 @@
 - Authorship and reviewer participation are independent. Exact and minimum approval counts are explicit choices.
 - First observations, rule edits, failed refreshes, and observation gaps have explicit notification semantics.
 - The user confirmed that initial matches belong in the PR listing, not desktop notifications or transition history; the acceptance scenario records this behavior.
+- Re-reviewed after the user narrowed scope to the macOS app: product CLI requirements are removed, while consistent browsing/segment/monitoring semantics and background operation remain required.
 - Single-account scope, default refresh cadence, local watch semantics, and read-only GitHub access are documented assumptions for review before planning.
 - The constitution remains an unfilled scaffold; its example principles are not adopted product requirements.
 - All 16 criteria pass. The draft is ready for user review and `/speckit-plan`.
