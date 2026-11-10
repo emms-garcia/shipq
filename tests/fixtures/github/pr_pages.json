@@ -1,0 +1,122 @@
+{
+  "format_version": 1,
+  "description": "Entirely synthetic REST-shaped examples. IDs, organizations, repositories, users, and pull requests do not identify real account data.",
+  "self": {"id": 900001, "node_id": "U_fixture_self", "login": "fixture-self"},
+  "organizations": [
+    {"id": 910001, "node_id": "O_fixture_alpha", "login": "fixture-alpha"},
+    {"id": 910002, "node_id": "O_fixture_beta", "login": "fixture-beta"}
+  ],
+  "repositories": [
+    {"id": 920001, "node_id": "R_fixture_core", "full_name": "fixture-alpha/core", "organization_node_id": "O_fixture_alpha"},
+    {"id": 920002, "node_id": "R_fixture_ui", "full_name": "fixture-alpha/ui", "organization_node_id": "O_fixture_alpha"},
+    {"id": 920003, "node_id": "R_fixture_ops", "full_name": "fixture-beta/ops", "organization_node_id": "O_fixture_beta"}
+  ],
+  "pages": [
+    {
+      "id": "core-page-1",
+      "request": {"method": "GET", "path": "/repos/fixture-alpha/core/pulls", "query": {"state": "all", "per_page": 2, "page": 1}},
+      "response": {
+        "status": 200,
+        "headers": {"Link": "<https://api.github.com/repos/fixture-alpha/core/pulls?state=all&per_page=2&page=2>; rel=\"next\""},
+        "body": [
+          {
+            "id": 930101, "node_id": "PR_fixture_101", "number": 101,
+            "title": "Synthetic core change", "state": "open", "draft": false, "merged_at": null,
+            "user": {"id": 900002, "node_id": "U_fixture_alice", "login": "fixture-alice"},
+            "base": {"repo": {"node_id": "R_fixture_core", "full_name": "fixture-alpha/core"}},
+            "head": {"sha": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"},
+            "assignees": [{"id": 900001, "node_id": "U_fixture_self", "login": "fixture-self"}],
+            "requested_reviewers": [], "requested_teams": [],
+            "labels": [{"node_id": "L_fixture_core_ready", "name": "ready"}],
+            "created_at": "2026-01-01T10:00:00Z", "updated_at": "2026-01-02T10:00:00Z"
+          },
+          {
+            "id": 930102, "node_id": "PR_fixture_102", "number": 102,
+            "title": "Synthetic self-authored change", "state": "open", "draft": false, "merged_at": null,
+            "user": {"id": 900001, "node_id": "U_fixture_self", "login": "fixture-self"},
+            "base": {"repo": {"node_id": "R_fixture_core", "full_name": "fixture-alpha/core"}},
+            "head": {"sha": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"},
+            "assignees": [], "requested_reviewers": [], "requested_teams": [], "labels": [],
+            "created_at": "2026-01-01T11:00:00Z", "updated_at": "2026-01-02T11:00:00Z"
+          }
+        ]
+      }
+    },
+    {
+      "id": "core-page-2",
+      "request": {"method": "GET", "path": "/repos/fixture-alpha/core/pulls", "query": {"state": "all", "per_page": 2, "page": 2}},
+      "response": {
+        "status": 200, "headers": {},
+        "body": [
+          {
+            "id": 930103, "node_id": "PR_fixture_103", "number": 103,
+            "title": "Synthetic three-approval change", "state": "open", "draft": false, "merged_at": null,
+            "user": {"id": 900004, "node_id": "U_fixture_carol", "login": "fixture-carol"},
+            "base": {"repo": {"node_id": "R_fixture_core", "full_name": "fixture-alpha/core"}},
+            "head": {"sha": "cccccccccccccccccccccccccccccccccccccccc"},
+            "assignees": [], "requested_reviewers": [], "requested_teams": [], "labels": [],
+            "created_at": "2026-01-01T12:00:00Z", "updated_at": "2026-01-02T12:00:00Z"
+          }
+        ]
+      }
+    },
+    {
+      "id": "ui-page-1",
+      "request": {"method": "GET", "path": "/repos/fixture-alpha/ui/pulls", "query": {"state": "all", "per_page": 2, "page": 1}},
+      "response": {
+        "status": 200, "headers": {},
+        "body": [
+          {
+            "id": 930104, "node_id": "PR_fixture_104", "number": 104,
+            "title": "Synthetic draft becoming ready", "state": "open", "draft": true, "merged_at": null,
+            "user": {"id": 900004, "node_id": "U_fixture_carol", "login": "fixture-carol"},
+            "base": {"repo": {"node_id": "R_fixture_ui", "full_name": "fixture-alpha/ui"}},
+            "head": {"sha": "dddddddddddddddddddddddddddddddddddddddd"},
+            "assignees": [], "requested_reviewers": [{"id": 900001, "node_id": "U_fixture_self", "login": "fixture-self"}],
+            "requested_teams": [], "labels": [],
+            "created_at": "2026-01-01T13:00:00Z", "updated_at": "2026-01-02T13:00:00Z"
+          },
+          {
+            "id": 930105, "node_id": "PR_fixture_105", "number": 105,
+            "title": "Synthetic merged change", "state": "closed", "draft": false, "merged_at": "2026-01-02T14:00:00Z",
+            "user": {"id": 900003, "node_id": "U_fixture_bob", "login": "fixture-bob"},
+            "base": {"repo": {"node_id": "R_fixture_ui", "full_name": "fixture-alpha/ui"}},
+            "head": {"sha": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"},
+            "assignees": [], "requested_reviewers": [], "requested_teams": [], "labels": [],
+            "created_at": "2026-01-01T14:00:00Z", "updated_at": "2026-01-02T14:00:00Z"
+          }
+        ]
+      }
+    },
+    {
+      "id": "ops-page-1",
+      "request": {"method": "GET", "path": "/repos/fixture-beta/ops/pulls", "query": {"state": "all", "per_page": 2, "page": 1}},
+      "response": {
+        "status": 200, "headers": {},
+        "body": [
+          {
+            "id": 930106, "node_id": "PR_fixture_106", "number": 106,
+            "title": "Synthetic commented and dismissed reviews", "state": "open", "draft": false, "merged_at": null,
+            "user": {"id": 900004, "node_id": "U_fixture_carol", "login": "fixture-carol"},
+            "base": {"repo": {"node_id": "R_fixture_ops", "full_name": "fixture-beta/ops"}},
+            "head": {"sha": "ffffffffffffffffffffffffffffffffffffffff"},
+            "assignees": [], "requested_reviewers": [], "requested_teams": [], "labels": [],
+            "created_at": "2026-01-01T15:00:00Z", "updated_at": "2026-01-02T15:00:00Z"
+          }
+        ]
+      }
+    }
+  ],
+  "failures": [
+    {
+      "id": "core-rate-limited",
+      "request": {"method": "GET", "path": "/repos/fixture-alpha/core/pulls", "query": {"state": "all", "per_page": 2, "page": 1}},
+      "response": {"status": 403, "headers": {"X-RateLimit-Remaining": "0", "X-RateLimit-Reset": "1767355200"}, "body": {"message": "Synthetic rate limit exceeded"}}
+    },
+    {
+      "id": "ops-unavailable",
+      "request": {"method": "GET", "path": "/repos/fixture-beta/ops/pulls", "query": {"state": "all", "per_page": 2, "page": 1}},
+      "response": {"status": 404, "headers": {}, "body": {"message": "Synthetic repository unavailable"}}
+    }
+  ]
+}

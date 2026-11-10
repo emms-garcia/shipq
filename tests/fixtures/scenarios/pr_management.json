@@ -1,0 +1,66 @@
+{
+  "format_version": 1,
+  "description": "Declarative synthetic expectations for future domain and scenario-driver tests. Fixture integrity checks do not evaluate these rules or simulate the application.",
+  "initial": {
+    "pr_pages": ["core-page-1", "core-page-2", "ui-page-1", "ops-page-1"],
+    "review_pages": ["reviews-101-page-1", "reviews-101-page-2", "reviews-102", "reviews-103", "reviews-104", "reviews-105", "reviews-106"],
+    "expected_event_count": 0
+  },
+  "listings": [
+    {
+      "id": "exactly-two-including-own",
+      "rule": {"format_version": 1, "condition": {"all": [
+        {"field": "organization", "op": "in", "value": ["O_fixture_alpha"]},
+        {"field": "state", "op": "in", "value": ["open"]},
+        {"field": "approval_count", "op": "eq", "value": 2}
+      ]}},
+      "matches": ["PR_fixture_101", "PR_fixture_102"]
+    },
+    {
+      "id": "exactly-two-excluding-own",
+      "rule": {"format_version": 1, "condition": {"all": [
+        {"field": "organization", "op": "in", "value": ["O_fixture_alpha"]},
+        {"field": "state", "op": "in", "value": ["open"]},
+        {"field": "author", "op": "not_in", "value": ["me"]},
+        {"field": "approval_count", "op": "eq", "value": 2}
+      ]}},
+      "matches": ["PR_fixture_101"]
+    },
+    {
+      "id": "at-least-two-with-my-approval",
+      "rule": {"format_version": 1, "condition": {"all": [
+        {"field": "organization", "op": "in", "value": ["O_fixture_alpha"]},
+        {"field": "state", "op": "in", "value": ["open"]},
+        {"field": "approval_count", "op": "gte", "value": 2},
+        {"field": "approvers", "op": "any", "value": ["me"]}
+      ]}},
+      "matches": ["PR_fixture_101", "PR_fixture_103"]
+    }
+  ],
+  "scenarios": [
+    {
+      "id": "draft-ready-and-second-approval", "pr_node_id": "PR_fixture_104",
+      "steps": [
+        {"at": "2026-01-02T13:00:00Z", "changes": {}, "expected": {"draft": true, "approval_count": 1, "event_count": 0}},
+        {"at": "2026-01-02T13:05:00Z", "changes": {"draft": false}, "expected": {"ready_segment_transition": "entry"}},
+        {"at": "2026-01-02T13:10:00Z", "changes": {"submitted_review": {"node_id": "RV_fixture_104_b", "user_node_id": "U_fixture_bob", "state": "APPROVED"}}, "expected": {"approval_count": 2, "two_approval_segment_transition": "entry", "my_approval_segment_transition": null}},
+        {"at": "2026-01-02T13:15:00Z", "changes": {"review_state": {"review_node_id": "RV_fixture_104_b", "state": "DISMISSED"}}, "expected": {"approval_count": 1, "two_approval_segment_transition": "exit"}},
+        {"at": "2026-01-02T13:20:00Z", "changes": {"submitted_review": {"node_id": "RV_fixture_104_c", "user_node_id": "U_fixture_self", "state": "APPROVED"}}, "expected": {"approval_count": 2, "two_approval_segment_transition": "entry", "my_approval_segment_transition": "entry"}}
+      ]
+    },
+    {
+      "id": "incomplete-review-pages-preserve-baseline", "pr_node_id": "PR_fixture_103",
+      "steps": [
+        {"at": "2026-01-02T13:00:00Z", "review_pages": ["reviews-103"], "expected": {"approval_count": 3, "event_count": 0}},
+        {"at": "2026-01-02T13:05:00Z", "review_pages": ["reviews-103-incomplete-page-1", "reviews-103-incomplete-page-2"], "expected": {"evaluation": "unknown", "baseline_unchanged": true, "event_count": 0}},
+        {"at": "2026-01-02T13:10:00Z", "review_pages": ["reviews-103"], "expected": {"approval_count": 3, "event_count": 0}}
+      ]
+    },
+    {
+      "id": "refresh-failures-do-not-create-exits",
+      "steps": [
+        {"at": "2026-01-02T13:00:00Z", "pr_pages": ["core-rate-limited", "ops-unavailable"], "expected": {"coverage": "partial", "baseline_unchanged": true, "event_count": 0}}
+      ]
+    }
+  ]
+}

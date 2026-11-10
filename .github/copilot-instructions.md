@@ -3,8 +3,11 @@
 ## Project context
 
 Shipq is a local-first GitHub PR manager focused on a macOS application.
-The repository currently contains Spec Kit tooling and the initial feature
-specification. The architecture below is the agreed target, not implemented code.
+The repository contains Spec Kit artifacts and the T001-T005 app foundation:
+a Flutter macOS scaffold, internal Go host stub, Swift helper stub, synthetic
+fixtures, and local build/check commands. The architecture below is the agreed
+target; GitHub access, persistence, IPC, monitoring, and native capabilities
+are not implemented yet.
 
 The active feature is recorded in `.specify/feature.json`. Read its `spec.md`
 for behavior and acceptance criteria, then `plan.md` and `tasks.md` when present.
@@ -54,8 +57,8 @@ The initial feature lives in `specs/001-pr-management/`.
 
 ## Agreed testing and coverage policy
 
-These are implementation and CI requirements; the test tooling and CI jobs have
-not yet been created.
+These are implementation and CI requirements. Current scaffold tests and local
+checks exist; domain/application coverage enforcement and CI arrive with T021.
 
 - Go domain rules use table-driven unit tests. Application use cases use fake
   ports, clocks, and GitHub responses so behavior is deterministic.
@@ -76,6 +79,18 @@ not yet been created.
 - CI must check Go formatting, run vet, race-enabled tests, and collect/enforce
   coverage. It must also check Flutter formatting, run static analysis, and run
   Flutter tests.
+
+## Current developer commands
+
+- Read `README.md` for pinned tools and limitations. Do not silently upgrade
+  shared tool installations.
+- Run `make deps` after dependency-manifest changes or missing-dependency
+  failures; keep the Go sums and Flutter application lockfile committed.
+- `make check` runs scaffold checks; it does not claim the future core coverage
+  gates. `make test-ui` and `make test-fixtures` run focused suites.
+- `make build` assembles a native-architecture ad-hoc-signed debug app;
+  `make build-arm64` and `make build-intel` select an architecture explicitly.
+  None installs a service or proves the signed T019 native capabilities.
 
 ## Branches, commits, and pull requests
 
