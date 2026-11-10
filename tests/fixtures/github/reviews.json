@@ -1,0 +1,95 @@
+{
+  "format_version": 1,
+  "description": "Synthetic REST-shaped review pages. Effective counts are future domain-test expectations, not a second evaluator.",
+  "pages": [
+    {
+      "id": "reviews-101-page-1", "pr_node_id": "PR_fixture_101",
+      "request": {"method": "GET", "path": "/repos/fixture-alpha/core/pulls/101/reviews", "query": {"per_page": 2, "page": 1}},
+      "response": {
+        "status": 200,
+        "headers": {"Link": "<https://api.github.com/repos/fixture-alpha/core/pulls/101/reviews?per_page=2&page=2>; rel=\"next\""},
+        "body": [
+          {"id": 940101, "node_id": "RV_fixture_101_a", "user": {"node_id": "U_fixture_self", "login": "fixture-self"}, "state": "APPROVED", "commit_id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "submitted_at": "2026-01-02T08:00:00Z"},
+          {"id": 940102, "node_id": "RV_fixture_101_b", "user": {"node_id": "U_fixture_bob", "login": "fixture-bob"}, "state": "APPROVED", "commit_id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "submitted_at": "2026-01-02T08:10:00Z"}
+        ]
+      }
+    },
+    {
+      "id": "reviews-101-page-2", "pr_node_id": "PR_fixture_101",
+      "request": {"method": "GET", "path": "/repos/fixture-alpha/core/pulls/101/reviews", "query": {"per_page": 2, "page": 2}},
+      "response": {
+        "status": 200, "headers": {},
+        "body": [
+          {"id": 940103, "node_id": "RV_fixture_101_c", "user": {"node_id": "U_fixture_self", "login": "fixture-self"}, "state": "APPROVED", "commit_id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "submitted_at": "2026-01-02T08:20:00Z"},
+          {"id": 940104, "node_id": "RV_fixture_101_d", "user": {"node_id": "U_fixture_self", "login": "fixture-self"}, "state": "COMMENTED", "commit_id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "submitted_at": "2026-01-02T08:30:00Z"}
+        ]
+      }
+    },
+    {
+      "id": "reviews-102", "pr_node_id": "PR_fixture_102",
+      "request": {"method": "GET", "path": "/repos/fixture-alpha/core/pulls/102/reviews", "query": {"per_page": 100, "page": 1}},
+      "response": {"status": 200, "headers": {}, "body": [
+        {"id": 940201, "node_id": "RV_fixture_102_a", "user": {"node_id": "U_fixture_alice", "login": "fixture-alice"}, "state": "APPROVED", "commit_id": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb", "submitted_at": "2026-01-02T09:00:00Z"},
+        {"id": 940202, "node_id": "RV_fixture_102_b", "user": {"node_id": "U_fixture_bob", "login": "fixture-bob"}, "state": "APPROVED", "commit_id": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb", "submitted_at": "2026-01-02T09:10:00Z"}
+      ]}
+    },
+    {
+      "id": "reviews-103", "pr_node_id": "PR_fixture_103",
+      "request": {"method": "GET", "path": "/repos/fixture-alpha/core/pulls/103/reviews", "query": {"per_page": 100, "page": 1}},
+      "response": {"status": 200, "headers": {}, "body": [
+        {"id": 940301, "node_id": "RV_fixture_103_a", "user": {"node_id": "U_fixture_self", "login": "fixture-self"}, "state": "APPROVED", "commit_id": "cccccccccccccccccccccccccccccccccccccccc", "submitted_at": "2026-01-02T09:00:00Z"},
+        {"id": 940302, "node_id": "RV_fixture_103_b", "user": {"node_id": "U_fixture_alice", "login": "fixture-alice"}, "state": "APPROVED", "commit_id": "cccccccccccccccccccccccccccccccccccccccc", "submitted_at": "2026-01-02T09:10:00Z"},
+        {"id": 940303, "node_id": "RV_fixture_103_c", "user": {"node_id": "U_fixture_bob", "login": "fixture-bob"}, "state": "APPROVED", "commit_id": "cccccccccccccccccccccccccccccccccccccccc", "submitted_at": "2026-01-02T09:20:00Z"}
+      ]}
+    },
+    {
+      "id": "reviews-104", "pr_node_id": "PR_fixture_104",
+      "request": {"method": "GET", "path": "/repos/fixture-alpha/ui/pulls/104/reviews", "query": {"per_page": 100, "page": 1}},
+      "response": {"status": 200, "headers": {}, "body": [
+        {"id": 940401, "node_id": "RV_fixture_104_a", "user": {"node_id": "U_fixture_alice", "login": "fixture-alice"}, "state": "APPROVED", "commit_id": "dddddddddddddddddddddddddddddddddddddddd", "submitted_at": "2026-01-02T09:00:00Z"}
+      ]}
+    },
+    {
+      "id": "reviews-105", "pr_node_id": "PR_fixture_105",
+      "request": {"method": "GET", "path": "/repos/fixture-alpha/ui/pulls/105/reviews", "query": {"per_page": 100, "page": 1}},
+      "response": {"status": 200, "headers": {}, "body": []}
+    },
+    {
+      "id": "reviews-106", "pr_node_id": "PR_fixture_106",
+      "request": {"method": "GET", "path": "/repos/fixture-beta/ops/pulls/106/reviews", "query": {"per_page": 100, "page": 1}},
+      "response": {"status": 200, "headers": {}, "body": [
+        {"id": 940601, "node_id": "RV_fixture_106_a", "user": {"node_id": "U_fixture_self", "login": "fixture-self"}, "state": "COMMENTED", "commit_id": "ffffffffffffffffffffffffffffffffffffffff", "submitted_at": "2026-01-02T09:00:00Z"},
+        {"id": 940602, "node_id": "RV_fixture_106_b", "user": {"node_id": "U_fixture_bob", "login": "fixture-bob"}, "state": "APPROVED", "commit_id": "ffffffffffffffffffffffffffffffffffffffff", "submitted_at": "2026-01-02T09:10:00Z"},
+        {"id": 940603, "node_id": "RV_fixture_106_c", "user": {"node_id": "U_fixture_bob", "login": "fixture-bob"}, "state": "DISMISSED", "commit_id": "ffffffffffffffffffffffffffffffffffffffff", "submitted_at": "2026-01-02T09:20:00Z"},
+        {"id": 940604, "node_id": "RV_fixture_106_d", "user": {"node_id": "U_fixture_self", "login": "fixture-self"}, "state": "PENDING", "commit_id": "ffffffffffffffffffffffffffffffffffffffff", "submitted_at": null}
+      ]}
+    },
+    {
+      "id": "reviews-103-incomplete-page-1", "pr_node_id": "PR_fixture_103",
+      "request": {"method": "GET", "path": "/repos/fixture-alpha/core/pulls/103/reviews", "query": {"per_page": 2, "page": 1}},
+      "response": {
+        "status": 200,
+        "headers": {"Link": "<https://api.github.com/repos/fixture-alpha/core/pulls/103/reviews?per_page=2&page=2>; rel=\"next\""},
+        "body": [
+          {"id": 940301, "node_id": "RV_fixture_103_a", "user": {"node_id": "U_fixture_self", "login": "fixture-self"}, "state": "APPROVED", "commit_id": "cccccccccccccccccccccccccccccccccccccccc", "submitted_at": "2026-01-02T09:00:00Z"},
+          {"id": 940302, "node_id": "RV_fixture_103_b", "user": {"node_id": "U_fixture_alice", "login": "fixture-alice"}, "state": "APPROVED", "commit_id": "cccccccccccccccccccccccccccccccccccccccc", "submitted_at": "2026-01-02T09:10:00Z"}
+        ]
+      }
+    }
+  ],
+  "failures": [
+    {
+      "id": "reviews-103-incomplete-page-2", "pr_node_id": "PR_fixture_103",
+      "request": {"method": "GET", "path": "/repos/fixture-alpha/core/pulls/103/reviews", "query": {"per_page": 2, "page": 2}},
+      "response": {"status": 502, "headers": {}, "body": {"message": "Synthetic upstream failure"}}
+    }
+  ],
+  "expected_effective_approvers": {
+    "PR_fixture_101": ["U_fixture_self", "U_fixture_bob"],
+    "PR_fixture_102": ["U_fixture_alice", "U_fixture_bob"],
+    "PR_fixture_103": ["U_fixture_self", "U_fixture_alice", "U_fixture_bob"],
+    "PR_fixture_104": ["U_fixture_alice"],
+    "PR_fixture_105": [],
+    "PR_fixture_106": []
+  }
+}
