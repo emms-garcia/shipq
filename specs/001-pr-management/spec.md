@@ -163,5 +163,5 @@ As a developer, I can control monitoring, inspect its health, and review notific
 - Monitoring observes state snapshots, not a complete historical event stream. A PR that enters and leaves a segment entirely between observations may produce no notification.
 - GitHub access and organizational policies determine discoverable data. The application cannot bypass permissions or promise complete coverage when the service prevents retrieval.
 - Export/import, cross-device synchronization, cloud storage, shared/team rules, and mobile clients are deferred. The MVP retains compatible record boundaries and identities but does not implement transfer protocols or conflict resolution.
-- The technology stack and persistence implementation will be selected in the planning phase; the local-only constraint is a product requirement.
+- Technology, persistence, and host-composition decisions are documented in the implementation plan; the local-only constraint remains a product requirement.
 - Automated acceptance coverage is required for filter semantics, effective reviews, pagination, transition baselines/deduplication, persistence, offline behavior, and parity between interfaces.
