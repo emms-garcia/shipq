@@ -16,3 +16,7 @@ coverage/
 DerivedData/
 tests/acceptance/artifacts/
 tests/platform/artifacts/
+shipq.sqlite3
+shipq.sqlite3-wal
+shipq.sqlite3-shm
+host.lock
