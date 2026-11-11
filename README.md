@@ -3,7 +3,8 @@
 A local-first macOS app for organizing GitHub pull requests into flexible
 segments and receiving notifications when their membership changes.
 
-**Current state:** app foundation and Go rule/review core (T001-T010).
+**Current state:** app foundation, Go rule/review core, and SQLite initialization
+with exclusive profile ownership (T001-T012).
 The core models stable identities and observations, reduces review snapshots
 to effective approval/participant facts, and validates/evaluates typed rules.
 The Flutter window still explains that GitHub connection and monitoring are
@@ -16,7 +17,8 @@ There is no product CLI.
 
 The accepted design uses a hexagonal Go core, SQLite infrastructure adapters,
 Flutter presentation over a private Unix-socket API, and a separate native Swift
-helper for macOS capabilities. Those integrations are not wired up yet.
+helper for macOS capabilities. Only the SQLite lifecycle adapter and its host
+ownership boundary exist; production runtime integration is not wired up yet.
 Export/import and cloud synchronization remain deferred.
 
 The review reducer counts distinct current approvers, retains submitted
@@ -43,6 +45,28 @@ summary, dependencies, and typed error paths. Its caller must supply the actual
 encoded definition byte count for the 64 KiB limit. JSON decoding,
 unknown-property rejection, and measurement of raw input belong to the future
 local-API/storage boundaries (T013-T014); no transport is implemented here.
+
+The host's profile initializer owns `<data-root>/<profile-uuid>/host.lock`
+before opening `shipq.sqlite3`, and returns a usable profile only after all
+pending migrations and the profile binding commit atomically. Schema versions,
+names, and checksums are recorded separately from portable record versions.
+Newer schemas, changed applied migrations, and another profile's UUID fail
+explicitly. A failure closes the database before releasing ownership.
+
+The database uses WAL, foreign keys on every connection, a one-second busy
+timeout, and one pooled connection. Shutdown waits for outstanding transactions
+before closing the pool and releasing the ownership lock. The lock file remains
+on disk; the OS releases its lock on close or process death, so a leftover file
+is not a reason to bypass ownership. Profile directories are `0700`; database
+and ownership files are `0600`. These filesystem helpers currently target macOS
+and Linux, not a Windows host.
+
+The initial schema contains the profile UUID binding, repository identity and
+discovery cache, an organization index, and resumable repository-refresh metadata.
+PR/review/account stores and mappings remain T030; segments, monitoring, and
+outbox tables belong to their later migrations. No secrets or OAuth tokens are
+stored. The entry-point stub does not call this initializer or create a real
+user profile yet.
 
 See the [specification](specs/001-pr-management/spec.md),
 [plan](specs/001-pr-management/plan.md), and
@@ -71,8 +95,9 @@ Go dependencies are pinned in `go.mod`/`go.sum`: `modernc.org/sqlite` v1.62.0
 (CGo-free, Go 1.26 compatible), `github.com/google/uuid` v1.6.0, and
 `golang.org/x/text` v0.44.0 for full Unicode case folding. SQLite's
 transitive `modernc.org/libc` version follows its module requirements. The domain
-uses the UUID utility for local IDs; SQLite remains reserved for its later
-storage adapter. The host stub uses neither. Commit `pubspec.lock` to keep
+uses the UUID utility for local IDs; the lifecycle adapter now uses SQLite and
+`golang.org/x/sys` v0.49.0 for filesystem protection/ownership primitives.
+The host entry-point stub uses neither. Commit `pubspec.lock` to keep
 application dependencies reproducible.
 
 ## Setup and build
@@ -121,6 +146,9 @@ plist validity, and shell syntax. `make format` applies source formatting.
 Domain unit tests cover identity/observation invariants, fixture-backed review
 reduction, and the rule matrix, unknowns, summaries, and validation limits.
 Application tests cover rule validation results and typed error propagation.
+SQLite tests use real temporary files, transactional upgrade/failure and
+cancellation cases, and WAL/constraint checks. Host tests use a real subprocess
+to prove ownership exclusion and recovery after abrupt process termination.
 CI and automated separate 90% domain/application coverage enforcement arrive
 with T021.
 
@@ -131,6 +159,10 @@ GOTOOLCHAIN=local go test ./internal/domain/reviews \
 
 # Rule engine and validation use case.
 GOTOOLCHAIN=local go test ./internal/domain/segments ./internal/application
+
+# Real database lifecycle and process ownership, isolated in temporary profiles.
+GOTOOLCHAIN=local go test -count=1 -race \
+  ./internal/adapters/sqlite ./internal/host -timeout 60s
 
 # One responsive scaffold-widget case.
 cd apps/desktop

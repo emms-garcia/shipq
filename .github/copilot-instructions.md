@@ -6,9 +6,10 @@ Shipq is a local-first GitHub PR manager focused on a macOS application.
 The repository contains Spec Kit artifacts, the macOS app foundation, and a Go
 domain library for stable identities, observations, effective reviews, and typed
 rule evaluation, plus an application rule-validation use case.
+SQLite lifecycle/migrations and a host profile-ownership initializer also exist.
 Flutter, the internal Go host, and the Swift helper remain scaffolds/stubs.
 Synthetic fixtures and local build/check commands exist. The architecture below is the agreed
-target; GitHub access, persistence, IPC, monitoring, and native capabilities
+target; GitHub access, user-record/PR stores, IPC, monitoring, and native capabilities
 are not implemented yet.
 
 The active feature is recorded in `.specify/feature.json`. Read its `spec.md`
@@ -30,6 +31,10 @@ The initial feature lives in `specs/001-pr-management/`.
 - Keep ports focused on application needs and required consistency guarantees,
   not SQL tables or GitHub endpoints. Add abstractions for actual MVP boundaries,
   not hypothetical future services.
+- Open profile databases through `host.OpenProfile`: acquire ownership before
+  initialization and close the database before releasing the lock. The low-level
+  SQLite opener requires its caller to hold ownership. Never remove a live or
+  stale-looking lock file; OS locking, not file existence, determines ownership.
 - Platform adapters own credential storage, desktop notification delivery, and
   background-process lifecycle. Core monitoring operations must be callable
   independently of an open Flutter window.
