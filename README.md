@@ -4,13 +4,15 @@ A local-first macOS app for organizing GitHub pull requests into flexible
 segments and receiving notifications when their membership changes.
 
 **Current state:** app foundation, Go rule/review core, SQLite initialization,
-the private local API library, and its thin Dart client (T001-T016).
+the private local API library, its thin Dart client, and native capability
+adapters (T001-T018).
 The core models stable identities and observations, reduces review snapshots
 to effective approval/participant facts, and validates/evaluates typed rules.
 The Flutter window still explains that GitHub connection and monitoring are
-not implemented. The bundled internal Go host and Swift helper are explicit
-stubs that exit with status 78; they do not
-open a database, connect to GitHub, request permissions, or install a service.
+not implemented. The bundled internal Go host remains an explicit stub that
+exits with status 78. The Swift helper handles private capability requests, but
+no production host/UI calls it yet. Normal app startup does not open a database,
+connect to GitHub, request permissions, or install a service.
 There is no product CLI.
 
 ## Architecture
@@ -101,6 +103,33 @@ outbox tables belong to their later migrations. No secrets or OAuth tokens are
 stored. The entry-point stub does not call this initializer or create a real
 user profile yet.
 
+The Swift capability helper accepts one bounded JSON request on stdin and
+returns one correlated response on stdout, then exits. Its Go adapter launches
+an explicitly supplied executable without capability arguments or inherited
+environment secrets; credentials cross only private pipes and remain separate
+from the public local API. Outputs are bounded to 1 MiB. Normal calls have a
+ten-second deadline; explicit notification authorization allows up to two
+minutes for user interaction, still bounded by the caller's context.
+
+Keychain items use profile UUIDs and a fixed Shipq service namespace, with
+non-synchronizing device-local storage. Upserts never delete an existing item
+before replacement; locked, denied, missing, unavailable, and failed outcomes
+remain distinct. `LAContext.interactionNotAllowed` prevents implicit Keychain
+prompts. Notifications require explicit authorization intent and use stable
+submission UUIDs; submission never requests permission. OS acceptance is not
+proof of visible or exactly-once delivery. Lost helper acknowledgment after
+submission is reported as ambiguous.
+
+`SMAppService.agent` resolves its plist in the **calling app's** bundle. The
+service wrapper therefore refuses to register the parent desktop app's agent
+from its nested helper. T019 must invoke it through the desktop-owned bridge,
+with the proper bundle metadata and explicit consent. The current helper
+reports service ownership as unavailable rather than registering a different
+job. Registration/approval, explicit-stop persistence, signed Keychain/native
+permissions, sandbox handoff, and background lifecycle remain T019/later gates.
+Unbundled helper calls fail closed without touching Keychain or requesting
+notifications. Routine tests inject native adapters instead of using real user data.
+
 See the [specification](specs/001-pr-management/spec.md),
 [plan](specs/001-pr-management/plan.md), and
 [implementation tasks](specs/001-pr-management/tasks.md).
@@ -174,8 +203,9 @@ open "build/macos/$(uname -m)/Shipq.app"
 ## Checks and focused tests
 
 `make check` checks toolchain pins, Go formatting/vet/race-enabled tests,
-Dart formatting/analysis/client and widget tests, fixture integrity, Swift
-formatting, plist validity, and shell syntax. `make format` applies source formatting.
+Dart formatting/analysis/client and widget tests, fixture integrity, injected
+Swift capability tests/formatting, plist validity, and shell syntax.
+`make format` applies source formatting.
 Domain unit tests cover identity/observation invariants, fixture-backed review
 reduction, and the rule matrix, unknowns, summaries, and validation limits.
 Application tests cover rule validation and honest status/error propagation.
@@ -209,6 +239,19 @@ GOTOOLCHAIN=local go test -count=1 -race \
 cd apps/desktop
 flutter test --no-pub test/application/local_client_test.dart --timeout 15s
 cd ../..
+
+# Private helper subprocess boundaries; signed smoke skips unless explicitly opted in.
+GOTOOLCHAIN=local go test -count=1 -race \
+  ./internal/adapters/macos ./tests/platform -timeout 60s
+
+# Injected Swift capabilities (no real Keychain, service install, or permission requests).
+make test-platform
+
+# Optional offline Go-to-unbundled-Swift protocol round trip after test-platform built it.
+SHIPQ_TEST_SWIFT_HELPER="$(swift build --package-path platform/macos \
+  --scratch-path build/swift/tests --show-bin-path)/ShipqPlatform" \
+  GOTOOLCHAIN=local go test -count=1 -race ./internal/adapters/macos \
+  -run '^TestUnbundledSwiftHelper$' -timeout 30s
 
 # One responsive scaffold-widget case.
 cd apps/desktop
@@ -247,6 +290,16 @@ and Dart client tests consume the same fixtures. None proves live provider
 normalization or real application transitions. No account credentials or OAuth registration are
 needed. Fixture-host targets are deliberately failing reservations until T020;
 core/adapter/coverage targets remain reserved until T021.
+
+The opt-in `TestSignedPlatformSmoke` requires `SHIPQ_PLATFORM_SMOKE=1` and an
+absolute `SHIPQ_SIGNED_APP` path to a genuinely development-signed bundle; it
+rejects ad-hoc signatures. It writes/reads/deletes only its newly generated
+synthetic profile credential. Optional
+`SHIPQ_PLATFORM_SMOKE_REQUEST_NOTIFICATIONS=1` and
+`SHIPQ_PLATFORM_SMOKE_SUBMIT_NOTIFICATION=1` separately authorize prompting and
+synthetic OS submission. Do not run these flags without explicit user intent.
+This capability harness does not install a service or satisfy T019 lifecycle,
+Flutter-terminated notification, architecture, or visible-delivery acceptance.
 
 ## Contributing
 

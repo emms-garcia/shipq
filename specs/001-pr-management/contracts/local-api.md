@@ -57,6 +57,29 @@ business use case. Flutter lifecycle controls use the macOS adapter; normal
 onboarding requires no terminal commands. Notification authorization cannot be
 requested implicitly by a background refresh.
 
+Native capabilities use a separate private child-process protocol, never these
+HTTP routes. One stdin JSON request contains `protocol_version: 1`, canonical
+UUID `request_id`, `operation`, and only that operation's fields. One stdout
+response contains the same protocol/request IDs and exactly one of
+`data: {state, credential?}` or `error: {code}`. The credential field is allowed
+only for private credential reads; it is never forwarded to Flutter.
+Requests/responses are bounded to 1 MiB; credentials to 64 KiB decoded bytes.
+The helper emits no request/native-error logging.
+
+Private operations are `credential.read/write/delete` (`profile_id`, plus
+base64 `credential` for write), `notification.status/authorize/submit`,
+and `service.status/register/unregister`. Authorization and service changes
+require `user_initiated: true`; notification submission uses a stable canonical
+UUID `notification_id`, `title`, and `body` and never requests permission.
+Unknown fields, wrong types, IDs, and versions fail explicitly. Native error
+codes are `denied`, `locked`, `not_found`, `unavailable`, and `failed`, not raw
+OS diagnostics. Go also distinguishes invalid responses and ambiguous
+post-start submission failures. Normal helper invocations have ten-second
+deadlines; explicit authorization allows two minutes, bounded by caller context.
+Service approval is distinct from enabled registration. The nested helper
+cannot own the parent desktop LaunchAgent; registration belongs to the
+desktop-owned bridge and remains part of signed T019 integration.
+
 ## Request and response shapes
 
 Segment mutations carry `expected_revision` when editing/deleting, name, the

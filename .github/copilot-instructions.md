@@ -11,9 +11,11 @@ The local API library implements strict v1 schemas, status/rule-validation
 handlers, and owned private Unix sockets, but is not wired into the host yet.
 Flutter has a thin typed Unix-socket client for status/rule validation, tested
 against shared fixtures and temporary sockets; no screen calls it yet.
-The Flutter UI, internal Go host, and Swift helper remain scaffolds/stubs.
+The Swift helper implements bounded private capability IPC and native wrappers;
+the Go macOS adapter invokes it through private pipes. The Flutter UI and
+internal Go host remain scaffolds/stubs, with no production runtime wiring.
 Synthetic fixtures and local build/check commands exist. The architecture below is the agreed
-target; GitHub access, user-record/PR stores, production IPC wiring, monitoring, and native capabilities
+target; GitHub access, user-record/PR stores, production IPC wiring, monitoring, and signed native acceptance
 are not implemented yet.
 
 The active feature is recorded in `.specify/feature.json`. Read its `spec.md`
@@ -51,6 +53,13 @@ The initial feature lives in `specs/001-pr-management/`.
 - Platform adapters own credential storage, desktop notification delivery, and
   background-process lifecycle. Core monitoring operations must be callable
   independently of an open Flutter window.
+- Keep native-helper credentials on private stdin/stdout pipes, never arguments,
+  inherited secret environment, public DTOs, or logs. Use an explicit trusted
+  bundle executable path; retain ambiguous notification submission on lost ack.
+- Invoke service registration from the desktop-owned bundle bridge:
+  `SMAppService.agent` uses the calling app's LaunchAgents directory, not its
+  parent bundle. The nested helper must report unavailable rather than register
+  the wrong job. No permission request or service mutation without user intent.
 - The merged implementation plan selects one Go application host owning
   SQLite and monitoring, with Flutter calling HTTP/JSON over a
   private Unix socket. See `specs/001-pr-management/plan.md` and its contracts;
@@ -108,7 +117,8 @@ local checks exist; grouped coverage enforcement and CI arrive with T021.
   failures; keep the Go sums and Flutter application lockfile committed.
 - `make check` runs implemented Go, Dart client, and scaffold checks; it does not
   claim the future core coverage gates. `make test-ui` and `make test-fixtures`
-  run focused suites.
+  run focused suites; `make test-platform` runs injected Swift capability tests.
+  Signed platform smoke remains explicitly opt-in, not routine acceptance.
 - Follow `README.md` for focused rule/review tests and independent aggregate
   domain/application coverage. Never report an empty application group as
   100% covered or imply future use cases have already been exercised.

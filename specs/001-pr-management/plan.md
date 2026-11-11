@@ -161,6 +161,11 @@ rules or opens SQLite. Credentials cross only private host/helper IPC and are
 never placed in command arguments or logs.
 
 Installing/enabling login startup requests user consent and macOS approval.
+`SMAppService.agent(plistName:)` resolves metadata in the calling app's
+`Contents/Library/LaunchAgents`, so the desktop-owned native bridge must perform
+registration. The nested capability helper cannot register its parent app's
+agent; it reports unavailable for that ownership mismatch. T019 must verify
+this bridge/bundle arrangement on the signed app, not bypass the ownership check.
 Closing a Flutter window does not stop the host. Pause disables scheduled
 refreshes while preserving cached functionality; explicit service stop disables
 automatic relaunch until an explicit start. Native registration state is shown
