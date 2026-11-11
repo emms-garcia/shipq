@@ -21,7 +21,7 @@ run:
 
 check:
 	bash scripts/check_toolchains.sh
-	test -z "$$(gofmt -l cmd)"
+	test -z "$$(gofmt -l cmd internal)"
 	GOTOOLCHAIN=local go vet ./...
 	GOTOOLCHAIN=local go test -race ./...
 	cd apps/desktop && dart format --output=none --set-exit-if-changed lib test
@@ -32,7 +32,7 @@ check:
 	bash -n scripts/check_toolchains.sh scripts/build_macos.sh
 
 format:
-	gofmt -w cmd
+	gofmt -w cmd internal
 	cd apps/desktop && dart format lib test
 	swift format format --in-place --recursive platform/macos/Package.swift platform/macos/Sources
 

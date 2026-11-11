@@ -3,9 +3,12 @@
 A local-first macOS app for organizing GitHub pull requests into flexible
 segments and receiving notifications when their membership changes.
 
-**Current state:** app foundation only (T001-T005). The Flutter window explains
-that GitHub connection and monitoring are not implemented. The bundled internal
-Go host and Swift helper are explicit stubs that exit with status 78; they do not
+**Current state:** app foundation and initial Go domain/review library
+(T001-T006, T009-T010). The core models stable identities and observations and
+reduces complete review snapshots to effective approval/participant facts.
+The Flutter window still explains that GitHub connection and monitoring are
+not implemented. The bundled internal Go host and Swift helper are explicit
+stubs that exit with status 78; they do not
 open a database, connect to GitHub, request permissions, or install a service.
 There is no product CLI.
 
@@ -15,6 +18,14 @@ The accepted design uses a hexagonal Go core, SQLite infrastructure adapters,
 Flutter presentation over a private Unix-socket API, and a separate native Swift
 helper for macOS capabilities. Those integrations are not wired up yet.
 Export/import and cloud synchronization remain deferred.
+
+The review reducer counts distinct current approvers, retains submitted
+participants separately, and does not infer mergeability. Incomplete pages,
+unstable heads, conflicting records, or ambiguous decisive-review ordering
+remain unknown rather than becoming zero approvals. Opinion and participant
+completeness are independent. Approvals on older commits remain effective unless
+the observed review state supersedes or dismisses them. Provider normalization
+still requires the later GitHub adapter and opt-in live acceptance checks.
 
 See the [specification](specs/001-pr-management/spec.md),
 [plan](specs/001-pr-management/plan.md), and
@@ -41,9 +52,10 @@ GNU-compatible Make are also required; no third-party Python packages are used.
 
 Go dependencies are pinned in `go.mod`/`go.sum`: `modernc.org/sqlite` v1.62.0
 (CGo-free, Go 1.26 compatible) and `github.com/google/uuid` v1.6.0. SQLite's
-transitive `modernc.org/libc` version follows its module requirements. These
-dependencies are reserved for later core/storage implementation, not used by the
-stub. Commit `pubspec.lock` to keep application dependencies reproducible.
+transitive `modernc.org/libc` version follows its module requirements. The domain
+uses the UUID utility for local IDs; SQLite remains reserved for its later
+storage adapter. The host stub uses neither. Commit `pubspec.lock` to keep
+application dependencies reproducible.
 
 ## Setup and build
 
@@ -85,14 +97,19 @@ open "build/macos/$(uname -m)/Shipq.app"
 
 ## Checks and focused tests
 
-`make check` checks toolchain pins, Go formatting/vet/race-test compilation,
+`make check` checks toolchain pins, Go formatting/vet/race-enabled tests,
 Dart formatting/analysis/widget tests, fixture integrity, Swift formatting,
 plist validity, and shell syntax. `make format` applies source formatting.
-There are no domain/application packages or Go behavioral tests yet; no coverage
-gate is claimed at this stage. CI and separate 90% core coverage gates arrive
-with T021.
+Domain unit tests cover identity/observation invariants and fixture-backed review
+reduction. Application currently declares only clock/ID-generator ports; it has
+no executable use cases or coverage result yet. CI and separate 90% domain and
+application coverage enforcement arrive with T021.
 
 ```sh
+# One review regression, from the repository root.
+GOTOOLCHAIN=local go test ./internal/domain/reviews \
+  -run '^TestReduce$/latest_dismissal_never_resurrects_approval$' -count=1
+
 # One responsive scaffold-widget case.
 cd apps/desktop
 flutter test --no-pub test/widget_test.dart \
@@ -107,8 +124,23 @@ python3 -m unittest discover -s tests/fixtures -p 'test_fixtures.py' \
 make test-ui test-fixtures
 ```
 
+For the implemented domain's aggregate statement coverage:
+
+```sh
+mkdir -p build/coverage
+GOTOOLCHAIN=local go test -count=1 -race -coverpkg=./internal/domain/... \
+  -coverprofile=build/coverage/review-domain.out \
+  ./internal/domain/... ./internal/application/ports
+GOTOOLCHAIN=local go tool cover -func=build/coverage/review-domain.out
+```
+
+Read the combined profile's `total`, not the per-test-package percentages.
+The uncached run avoids mixing old source mappings into cross-package coverage.
+There is deliberately no substitute application percentage for empty interfaces.
+
 The GitHub/protocol/scenario fixtures under `tests/fixtures/` are synthetic.
-Integrity tests check pagination and references, not rule evaluation or real
+Python integrity tests check pagination and references; Go review tests consume
+the same fixtures. Neither proves live provider normalization or real
 application transitions. No account credentials or OAuth registration are
 needed. Fixture-host targets are deliberately failing reservations until T020;
 core/adapter/coverage targets remain reserved until T021.

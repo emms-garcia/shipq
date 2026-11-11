@@ -3,9 +3,10 @@
 ## Project context
 
 Shipq is a local-first GitHub PR manager focused on a macOS application.
-The repository contains Spec Kit artifacts and the T001-T005 app foundation:
-a Flutter macOS scaffold, internal Go host stub, Swift helper stub, synthetic
-fixtures, and local build/check commands. The architecture below is the agreed
+The repository contains Spec Kit artifacts, the macOS app foundation, and a Go
+domain library for stable identities, observations, and effective reviews.
+Flutter, the internal Go host, and the Swift helper remain scaffolds/stubs.
+Synthetic fixtures and local build/check commands exist. The architecture below is the agreed
 target; GitHub access, persistence, IPC, monitoring, and native capabilities
 are not implemented yet.
 
@@ -57,8 +58,8 @@ The initial feature lives in `specs/001-pr-management/`.
 
 ## Agreed testing and coverage policy
 
-These are implementation and CI requirements. Current scaffold tests and local
-checks exist; domain/application coverage enforcement and CI arrive with T021.
+These are implementation and CI requirements. Domain and scaffold tests and
+local checks exist; grouped coverage enforcement and CI arrive with T021.
 
 - Go domain rules use table-driven unit tests. Application use cases use fake
   ports, clocks, and GitHub responses so behavior is deterministic.
@@ -86,8 +87,11 @@ checks exist; domain/application coverage enforcement and CI arrive with T021.
   shared tool installations.
 - Run `make deps` after dependency-manifest changes or missing-dependency
   failures; keep the Go sums and Flutter application lockfile committed.
-- `make check` runs scaffold checks; it does not claim the future core coverage
-  gates. `make test-ui` and `make test-fixtures` run focused suites.
+- `make check` runs Go domain and scaffold checks; it does not claim the future
+  core coverage gates. `make test-ui` and `make test-fixtures` run focused suites.
+- Follow `README.md` for a single review regression and aggregate domain
+  coverage. Application has only port interfaces until use cases are added;
+  never report an empty application group as 100% covered.
 - `make build` assembles a native-architecture ad-hoc-signed debug app;
   `make build-arm64` and `make build-intel` select an architecture explicitly.
   None installs a service or proves the signed T019 native capabilities.
