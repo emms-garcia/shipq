@@ -1,6 +1,6 @@
 {
   "format_version": 1,
-  "description": "Synthetic shared Go/Dart envelope examples consumed by Go schema tests. Some operation payloads remain planned. No real device codes or credentials.",
+  "description": "Synthetic shared Go/Dart envelope examples consumed by Go schema and Dart client tests. Some operation payloads remain planned. No real device codes or credentials.",
   "valid": [
     {
       "id": "empty-partial-query", "status": 200,
