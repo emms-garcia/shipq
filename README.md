@@ -3,9 +3,9 @@
 A local-first macOS app for organizing GitHub pull requests into flexible
 segments and receiving notifications when their membership changes.
 
-**Current state:** app foundation and initial Go domain/review library
-(T001-T006, T009-T010). The core models stable identities and observations and
-reduces complete review snapshots to effective approval/participant facts.
+**Current state:** app foundation and Go rule/review core (T001-T010).
+The core models stable identities and observations, reduces review snapshots
+to effective approval/participant facts, and validates/evaluates typed rules.
 The Flutter window still explains that GitHub connection and monitoring are
 not implemented. The bundled internal Go host and Swift helper are explicit
 stubs that exit with status 78; they do not
@@ -26,6 +26,23 @@ remain unknown rather than becoming zero approvals. Opinion and participant
 completeness are independent. Approvals on older commits remain effective unless
 the observed review state supersedes or dismisses them. Provider normalization
 still requires the later GitHub adapter and opt-in live acceptance checks.
+
+The rule engine supports the complete v1 field/operator matrix, grouped
+three-valued logic, Unicode case-folded titles, scoped identities/labels, and
+inclusive-start/exclusive-end dates. `me` uses the explicitly supplied connected
+account. Compiled rules are immutable snapshots with readable summaries and
+field dependencies; saved evaluation never adds a hidden open-state filter.
+Incomplete inputs remain unknown. Cached results are displayable, but
+notification eligibility requires explicitly fresh, complete evidence for every
+referenced field, even when Boolean short-circuiting establishes membership.
+Eligibility is not a transition or notification; those state machines are not
+implemented.
+
+The application validation use case returns the core's normalized definition,
+summary, dependencies, and typed error paths. Its caller must supply the actual
+encoded definition byte count for the 64 KiB limit. JSON decoding,
+unknown-property rejection, and measurement of raw input belong to the future
+local-API/storage boundaries (T013-T014); no transport is implemented here.
 
 See the [specification](specs/001-pr-management/spec.md),
 [plan](specs/001-pr-management/plan.md), and
@@ -51,7 +68,8 @@ Flutter, and Xcode versions without changing global installations. Python 3 and
 GNU-compatible Make are also required; no third-party Python packages are used.
 
 Go dependencies are pinned in `go.mod`/`go.sum`: `modernc.org/sqlite` v1.62.0
-(CGo-free, Go 1.26 compatible) and `github.com/google/uuid` v1.6.0. SQLite's
+(CGo-free, Go 1.26 compatible), `github.com/google/uuid` v1.6.0, and
+`golang.org/x/text` v0.44.0 for full Unicode case folding. SQLite's
 transitive `modernc.org/libc` version follows its module requirements. The domain
 uses the UUID utility for local IDs; SQLite remains reserved for its later
 storage adapter. The host stub uses neither. Commit `pubspec.lock` to keep
@@ -100,15 +118,19 @@ open "build/macos/$(uname -m)/Shipq.app"
 `make check` checks toolchain pins, Go formatting/vet/race-enabled tests,
 Dart formatting/analysis/widget tests, fixture integrity, Swift formatting,
 plist validity, and shell syntax. `make format` applies source formatting.
-Domain unit tests cover identity/observation invariants and fixture-backed review
-reduction. Application currently declares only clock/ID-generator ports; it has
-no executable use cases or coverage result yet. CI and separate 90% domain and
-application coverage enforcement arrive with T021.
+Domain unit tests cover identity/observation invariants, fixture-backed review
+reduction, and the rule matrix, unknowns, summaries, and validation limits.
+Application tests cover rule validation results and typed error propagation.
+CI and automated separate 90% domain/application coverage enforcement arrive
+with T021.
 
 ```sh
 # One review regression, from the repository root.
 GOTOOLCHAIN=local go test ./internal/domain/reviews \
   -run '^TestReduce$/latest_dismissal_never_resurrects_approval$' -count=1
+
+# Rule engine and validation use case.
+GOTOOLCHAIN=local go test ./internal/domain/segments ./internal/application
 
 # One responsive scaffold-widget case.
 cd apps/desktop
@@ -124,19 +146,22 @@ python3 -m unittest discover -s tests/fixtures -p 'test_fixtures.py' \
 make test-ui test-fixtures
 ```
 
-For the implemented domain's aggregate statement coverage:
+For independent domain and application aggregate statement coverage:
 
 ```sh
 mkdir -p build/coverage
 GOTOOLCHAIN=local go test -count=1 -race -coverpkg=./internal/domain/... \
-  -coverprofile=build/coverage/review-domain.out \
-  ./internal/domain/... ./internal/application/ports
-GOTOOLCHAIN=local go tool cover -func=build/coverage/review-domain.out
+  -coverprofile=build/coverage/rule-domain.out ./internal/domain/...
+GOTOOLCHAIN=local go tool cover -func=build/coverage/rule-domain.out
+GOTOOLCHAIN=local go test -count=1 -race -coverpkg=./internal/application/... \
+  -coverprofile=build/coverage/rule-application.out ./internal/application/...
+GOTOOLCHAIN=local go tool cover -func=build/coverage/rule-application.out
 ```
 
 Read the combined profile's `total`, not the per-test-package percentages.
 The uncached run avoids mixing old source mappings into cross-package coverage.
-There is deliberately no substitute application percentage for empty interfaces.
+The application total covers the implemented validation use case, not empty
+port interfaces or unbuilt future operations.
 
 The GitHub/protocol/scenario fixtures under `tests/fixtures/` are synthetic.
 Python integrity tests check pagination and references; Go review tests consume
