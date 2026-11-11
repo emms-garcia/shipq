@@ -4,7 +4,7 @@ A local-first macOS app for organizing GitHub pull requests into flexible
 segments and receiving notifications when their membership changes.
 
 **Current state:** app foundation, Go rule/review core, SQLite initialization,
-and the private local API library (T001-T014).
+the private local API library, and its thin Dart client (T001-T016).
 The core models stable identities and observations, reduces review snapshots
 to effective approval/participant facts, and validates/evaluates typed rules.
 The Flutter window still explains that GitHub connection and monitoring are
@@ -60,9 +60,24 @@ Socket paths are at most 103 UTF-8 bytes, excluding the terminator, for macOS
 compatibility. A separate persistent `socket.lock` protects the runtime path.
 Live listeners/unrelated files/symlinks are never replaced; refused stale
 sockets can be recovered only while holding ownership. Shutdown retains
-ownership on timeout and removes only its own socket inode. No TCP listener,
-production host wiring, or Flutter client is introduced. The later composition
-must initialize the owned profile before starting this API.
+ownership on timeout and removes only its own socket inode. No TCP listener
+or production host wiring is introduced by the socket library. The later
+composition must initialize the owned profile before starting this API.
+
+The Dart `LocalClient` calls status and rule validation over the explicitly
+supplied Unix socket using `HttpClient.connectionFactory`. It disables proxies
+and redirects, checks protocol/correlation headers and JSON payload types, and
+preserves typed server errors, immutable metadata, and core-provided summaries.
+Connection loss, timeouts, malformed responses, protocol mismatch, and explicit
+client closure remain distinct failures, never empty successful lists.
+Requests and responses are bounded to 1 MiB; a ten-second whole-request deadline
+is configurable. Timeouts cancel only their own I/O; client closure cancels all
+owned requests. The host remains authoritative for the independent 64 KiB rule limit.
+The device-session model consumes synthetic wire guidance only and rejects
+secret/unknown fields and unsafe verification URLs; no account route or OAuth
+exchange is implemented in Dart. No screen calls this client yet; runtime socket
+handoff and signed/sandboxed integration remain the later T019 gate. Shared
+design tokens/theming must precede feature-screen implementation.
 
 The host's profile initializer owns `<data-root>/<profile-uuid>/host.lock`
 before opening `shipq.sqlite3`, and returns a usable profile only after all
@@ -159,8 +174,8 @@ open "build/macos/$(uname -m)/Shipq.app"
 ## Checks and focused tests
 
 `make check` checks toolchain pins, Go formatting/vet/race-enabled tests,
-Dart formatting/analysis/widget tests, fixture integrity, Swift formatting,
-plist validity, and shell syntax. `make format` applies source formatting.
+Dart formatting/analysis/client and widget tests, fixture integrity, Swift
+formatting, plist validity, and shell syntax. `make format` applies source formatting.
 Domain unit tests cover identity/observation invariants, fixture-backed review
 reduction, and the rule matrix, unknowns, summaries, and validation limits.
 Application tests cover rule validation and honest status/error propagation.
@@ -190,6 +205,11 @@ GOTOOLCHAIN=local go test -count=1 -race \
 GOTOOLCHAIN=local go test -count=1 -race \
   ./api/local/v1 ./internal/adapters/localapi ./internal/application -timeout 60s
 
+# Dart shared schemas and real temporary Unix HTTP client tests.
+cd apps/desktop
+flutter test --no-pub test/application/local_client_test.dart --timeout 15s
+cd ../..
+
 # One responsive scaffold-widget case.
 cd apps/desktop
 flutter test --no-pub test/widget_test.dart \
@@ -200,7 +220,7 @@ cd ../..
 python3 -m unittest discover -s tests/fixtures -p 'test_fixtures.py' \
   -k test_next_links_resolve_to_supplied_success_or_failure_pages
 
-# Entire current widget and fixture suites.
+# Entire current client/widget and fixture suites.
 make test-ui test-fixtures
 ```
 
@@ -223,8 +243,8 @@ port interfaces or unbuilt future operations.
 
 The GitHub/protocol/scenario fixtures under `tests/fixtures/` are synthetic.
 Python integrity tests check pagination and references; Go review/schema tests
-consume the same fixtures. Neither proves live provider normalization or real
-application transitions. No account credentials or OAuth registration are
+and Dart client tests consume the same fixtures. None proves live provider
+normalization or real application transitions. No account credentials or OAuth registration are
 needed. Fixture-host targets are deliberately failing reservations until T020;
 core/adapter/coverage targets remain reserved until T021.
 

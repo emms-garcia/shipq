@@ -9,7 +9,9 @@ rule evaluation, plus an application rule-validation use case.
 SQLite lifecycle/migrations and a host profile-ownership initializer also exist.
 The local API library implements strict v1 schemas, status/rule-validation
 handlers, and owned private Unix sockets, but is not wired into the host yet.
-Flutter, the internal Go host, and the Swift helper remain scaffolds/stubs.
+Flutter has a thin typed Unix-socket client for status/rule validation, tested
+against shared fixtures and temporary sockets; no screen calls it yet.
+The Flutter UI, internal Go host, and Swift helper remain scaffolds/stubs.
 Synthetic fixtures and local build/check commands exist. The architecture below is the agreed
 target; GitHub access, user-record/PR stores, production IPC wiring, monitoring, and native capabilities
 are not implemented yet.
@@ -41,6 +43,11 @@ The initial feature lives in `specs/001-pr-management/`.
   dedicated current-user runtime directory, never the long persistence path.
   Keep socket ownership through graceful shutdown; do not replace live sockets
   or remove a different owner's path.
+- Pass the runtime socket path explicitly to `LocalClient`; never fall back to
+  TCP or start a host as a connection side effect. Keep transport/schema errors
+  distinct from successful empty results, and close clients owned by controllers.
+- Establish shared design tokens/theming before implementing feature screens;
+  do not hard-code spacing, colors, or other visual styling.
 - Platform adapters own credential storage, desktop notification delivery, and
   background-process lifecycle. Core monitoring operations must be callable
   independently of an open Flutter window.
@@ -99,8 +106,9 @@ local checks exist; grouped coverage enforcement and CI arrive with T021.
   shared tool installations.
 - Run `make deps` after dependency-manifest changes or missing-dependency
   failures; keep the Go sums and Flutter application lockfile committed.
-- `make check` runs Go domain and scaffold checks; it does not claim the future
-  core coverage gates. `make test-ui` and `make test-fixtures` run focused suites.
+- `make check` runs implemented Go, Dart client, and scaffold checks; it does not
+  claim the future core coverage gates. `make test-ui` and `make test-fixtures`
+  run focused suites.
 - Follow `README.md` for focused rule/review tests and independent aggregate
   domain/application coverage. Never report an empty application group as
   100% covered or imply future use cases have already been exercised.

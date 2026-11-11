@@ -158,6 +158,20 @@ through an offline-capable host without reaching GitHub.
 Flutter polls host/job status while visible; push streams are deferred.
 Connection loss shows host-unavailable state, not an empty PR list.
 
+The thin Dart client takes an explicit absolute Unix socket path (at most
+103 UTF-8 bytes), with no proxy, redirect following, TCP fallback, or automatic
+host startup. It validates response media, matching request IDs, protocol
+headers/status versions, and typed payloads. Transport loss, whole-request
+timeout (default ten seconds), malformed response, incompatible protocol,
+explicit closure, and server API errors are distinct failures. It bounds
+request/response bodies to 1 MiB and cancels owned I/O on timeout/closure.
+The Go validator remains authoritative for rule meaning and the 64 KiB limit.
+Metadata is retained without treating partial/unknown coverage as complete.
+The device-session guidance DTO is strict and accepts only HTTPS
+`github.com/login/device` verification URLs without credentials, query, fragment,
+or a nonstandard port. Account endpoints and terminal-session shapes arrive
+with the account slice; the current client only calls status and validation.
+
 Close Window, Pause Monitoring, Disable Monitoring, and Quit Background Service
 are distinct actions. Opening the app after explicit service stop must not
 silently restart monitoring. Installing/enabling login startup requires visible
