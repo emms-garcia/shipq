@@ -6,8 +6,9 @@ The Go domain defines and evaluates one typed condition tree. Flutter controls
 construct that tree without implementing a second evaluator.
 Storage and client DTOs map to the domain at their boundaries.
 
-A saved definition contains `format_version: 1`, a `condition`, and an explicit
-default listing state. Conditions use exactly one of these shapes:
+A saved definition contains `format_version: 1` and a `condition`. Listing state
+is an explicit condition, not hidden default metadata. Conditions use exactly
+one of these shapes:
 
 ```json
 {
@@ -50,6 +51,20 @@ from local Git configuration. Display names/logins are resolved to stable IDs
 when saving. Persist the original display hint for an actionable unresolved
 identity message. Team references are allowed only for `requested_reviewers`;
 approval sets and `reviewed_by` use individual user IDs.
+
+At the local v1 boundary, compact identity strings mean GitHub.com node IDs;
+`"me"` is the connected-account sentinel. Explicit references use
+`{"kind":"user","node_id":"USER_NODE_ID","github_host":"github.com","display_hint":"login"}`.
+`kind` and `node_id` are required; host defaults to GitHub.com and the display
+hint is optional. Kinds are `user`, `team`, `organization`, or `repository`,
+subject to the field restrictions above. An explicit `node_id` is always an
+opaque ID, never a login lookup or a `me` sentinel.
+
+Label values use
+`{"node_id":"LABEL_NODE_ID","repository_node_id":"REPO_NODE_ID","github_host":"github.com","display_hint":"bug"}`.
+Both IDs are required; host and hint have the same defaults as identity values.
+Display-name lookup and expansion across selected repositories occur in the
+later identity-resolution use case, not in rule validation.
 
 Labels are resolved within each selected repository; a name selected across
 repositories expands into explicit repository/label references. `title contains`

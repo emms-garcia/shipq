@@ -95,6 +95,31 @@ or partial response is not a claim that the empty result contains every match.
 The host's rule validation response supplies a readable summary and typed
 validation paths for the UI; Flutter only edits/displays the definition.
 
+`POST /v1/rules/validate` accepts the definition itself as its JSON body
+(`format_version` and `condition`), not a wrapper or encoded string. The raw
+UTF-8 body, including whitespace, is subject to the independent 64 KiB rule
+limit. A successful response has `data: {summary, required_fields}`.
+Malformed shapes/types, null required values, duplicate or unknown properties
+return `400 invalid_request`; unsupported rule versions and domain-invalid
+rules return `422` with `details.path`. Identity/label wire values are defined
+in [rules](rules.md).
+
+Status data includes `protocol_version`, `host_version`, `active_profile_id`,
+`monitor_state`, `notification_permission`, and `coverage: {state}`. Unbuilt
+monitoring/native capabilities remain explicitly `unavailable`; unknown
+coverage is not complete coverage. An unavailable/uninitialized status provider
+returns `503 host_unavailable`. Rich refresh/coverage reporting is added with
+its implementing slices.
+
+Every handled response carries a generated UUID `request_id` and matching
+`X-Request-ID`, plus `X-Shipq-Protocol-Version: 1`; client-supplied correlation
+headers are not echoed. Response envelopes contain exactly one of `data` or
+`error`. Mutation bodies require uncompressed `application/json`, with no
+charset or UTF-8 charset. Browser-origin/fetch requests return
+`403 forbidden_origin`, media failures `415 unsupported_media_type`, and
+over-limit bodies `413 payload_too_large`. Unknown routes and wrong methods
+return typed `404 not_found` and `405 method_not_allowed` envelopes.
+
 Successful single-object commands return `data`; list queries add immutable
 snapshot/cursor fields. Snapshot expiry is 15 minutes, with a bounded 32 MiB
 per-profile memory budget and least-recently-used eviction. Expired, evicted, or
