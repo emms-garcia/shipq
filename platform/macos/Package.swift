@@ -8,6 +8,7 @@ let package = Package(
     .executable(name: "ShipqPlatform", targets: ["ShipqPlatform"])
   ],
   targets: [
-    .executableTarget(name: "ShipqPlatform")
+    .executableTarget(name: "ShipqPlatform"),
+    .testTarget(name: "ShipqPlatformTests", dependencies: ["ShipqPlatform"]),
   ]
 )
