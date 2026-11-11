@@ -7,9 +7,11 @@ The repository contains Spec Kit artifacts, the macOS app foundation, and a Go
 domain library for stable identities, observations, effective reviews, and typed
 rule evaluation, plus an application rule-validation use case.
 SQLite lifecycle/migrations and a host profile-ownership initializer also exist.
+The local API library implements strict v1 schemas, status/rule-validation
+handlers, and owned private Unix sockets, but is not wired into the host yet.
 Flutter, the internal Go host, and the Swift helper remain scaffolds/stubs.
 Synthetic fixtures and local build/check commands exist. The architecture below is the agreed
-target; GitHub access, user-record/PR stores, IPC, monitoring, and native capabilities
+target; GitHub access, user-record/PR stores, production IPC wiring, monitoring, and native capabilities
 are not implemented yet.
 
 The active feature is recorded in `.specify/feature.json`. Read its `spec.md`
@@ -35,6 +37,10 @@ The initial feature lives in `specs/001-pr-management/`.
   initialization and close the database before releasing the lock. The low-level
   SQLite opener requires its caller to hold ownership. Never remove a live or
   stale-looking lock file; OS locking, not file existence, determines ownership.
+- Start the local API only after owned profile initialization. Give it a short,
+  dedicated current-user runtime directory, never the long persistence path.
+  Keep socket ownership through graceful shutdown; do not replace live sockets
+  or remove a different owner's path.
 - Platform adapters own credential storage, desktop notification delivery, and
   background-process lifecycle. Core monitoring operations must be callable
   independently of an open Flutter window.

@@ -3,8 +3,8 @@
 A local-first macOS app for organizing GitHub pull requests into flexible
 segments and receiving notifications when their membership changes.
 
-**Current state:** app foundation, Go rule/review core, and SQLite initialization
-with exclusive profile ownership (T001-T012).
+**Current state:** app foundation, Go rule/review core, SQLite initialization,
+and the private local API library (T001-T014).
 The core models stable identities and observations, reduces review snapshots
 to effective approval/participant facts, and validates/evaluates typed rules.
 The Flutter window still explains that GitHub connection and monitoring are
@@ -17,8 +17,8 @@ There is no product CLI.
 
 The accepted design uses a hexagonal Go core, SQLite infrastructure adapters,
 Flutter presentation over a private Unix-socket API, and a separate native Swift
-helper for macOS capabilities. Only the SQLite lifecycle adapter and its host
-ownership boundary exist; production runtime integration is not wired up yet.
+helper for macOS capabilities. SQLite lifecycle/ownership and the local API
+library exist; production runtime integration is not wired up yet.
 Export/import and cloud synchronization remain deferred.
 
 The review reducer counts distinct current approvers, retains submitted
@@ -42,9 +42,27 @@ implemented.
 
 The application validation use case returns the core's normalized definition,
 summary, dependencies, and typed error paths. Its caller must supply the actual
-encoded definition byte count for the 64 KiB limit. JSON decoding,
-unknown-property rejection, and measurement of raw input belong to the future
-local-API/storage boundaries (T013-T014); no transport is implemented here.
+encoded definition byte count for the 64 KiB limit. The local API now performs
+strict JSON decoding and measures the actual raw UTF-8 definition bytes.
+Storage mapping remains separate; no JSON/HTTP types enter the core.
+
+The local API exposes `GET /v1/status` and `POST /v1/rules/validate`.
+Status reads an application port; rule handling maps wire values and calls the
+application validator, never SQLite or a second evaluator. Generated request
+UUIDs accompany typed success/error envelopes. Invalid shapes/types, null
+required values, duplicate/unknown properties, browser-origin requests, wrong
+media/charset, and oversized bodies fail explicitly. The request body limit is
+1 MiB, independently of the 64 KiB rule limit.
+
+The socket library accepts an absolute dedicated runtime directory, verifies
+current-user ownership and `0700`, and creates `api.sock` with `0600`.
+Socket paths are at most 103 UTF-8 bytes, excluding the terminator, for macOS
+compatibility. A separate persistent `socket.lock` protects the runtime path.
+Live listeners/unrelated files/symlinks are never replaced; refused stale
+sockets can be recovered only while holding ownership. Shutdown retains
+ownership on timeout and removes only its own socket inode. No TCP listener,
+production host wiring, or Flutter client is introduced. The later composition
+must initialize the owned profile before starting this API.
 
 The host's profile initializer owns `<data-root>/<profile-uuid>/host.lock`
 before opening `shipq.sqlite3`, and returns a usable profile only after all
@@ -145,7 +163,11 @@ Dart formatting/analysis/widget tests, fixture integrity, Swift formatting,
 plist validity, and shell syntax. `make format` applies source formatting.
 Domain unit tests cover identity/observation invariants, fixture-backed review
 reduction, and the rule matrix, unknowns, summaries, and validation limits.
-Application tests cover rule validation results and typed error propagation.
+Application tests cover rule validation and honest status/error propagation.
+API tests consume shared protocol fixtures and exercise strict rule wire
+mapping, resource boundaries, permissions, ownership, and real HTTP round trips
+over Unix sockets. Status capabilities in these tests are synthetic, not native
+service evidence.
 SQLite tests use real temporary files, transactional upgrade/failure and
 cancellation cases, and WAL/constraint checks. Host tests use a real subprocess
 to prove ownership exclusion and recovery after abrupt process termination.
@@ -163,6 +185,10 @@ GOTOOLCHAIN=local go test ./internal/domain/segments ./internal/application
 # Real database lifecycle and process ownership, isolated in temporary profiles.
 GOTOOLCHAIN=local go test -count=1 -race \
   ./internal/adapters/sqlite ./internal/host -timeout 60s
+
+# Shared schema, private Unix HTTP transport, and application use cases.
+GOTOOLCHAIN=local go test -count=1 -race \
+  ./api/local/v1 ./internal/adapters/localapi ./internal/application -timeout 60s
 
 # One responsive scaffold-widget case.
 cd apps/desktop
@@ -192,12 +218,12 @@ GOTOOLCHAIN=local go tool cover -func=build/coverage/rule-application.out
 
 Read the combined profile's `total`, not the per-test-package percentages.
 The uncached run avoids mixing old source mappings into cross-package coverage.
-The application total covers the implemented validation use case, not empty
+The application total covers implemented validation/status use cases, not empty
 port interfaces or unbuilt future operations.
 
 The GitHub/protocol/scenario fixtures under `tests/fixtures/` are synthetic.
-Python integrity tests check pagination and references; Go review tests consume
-the same fixtures. Neither proves live provider normalization or real
+Python integrity tests check pagination and references; Go review/schema tests
+consume the same fixtures. Neither proves live provider normalization or real
 application transitions. No account credentials or OAuth registration are
 needed. Fixture-host targets are deliberately failing reservations until T020;
 core/adapter/coverage targets remain reserved until T021.

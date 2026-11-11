@@ -1,6 +1,6 @@
 {
   "format_version": 1,
-  "description": "Synthetic examples for the future shared Go/Dart schema suite; not an implemented API. No real device codes or credentials.",
+  "description": "Synthetic shared Go/Dart envelope examples consumed by Go schema tests. Some operation payloads remain planned. No real device codes or credentials.",
   "valid": [
     {
       "id": "empty-partial-query", "status": 200,
@@ -24,6 +24,20 @@
     {
       "id": "snapshot-expired", "status": 410,
       "envelope": {"request_id": "66666666-6666-4666-8666-666666666666", "error": {"code": "snapshot_expired", "message": "Create a new query.", "retryable": false, "details": {}}}
+    },
+    {
+      "id": "host-status-unavailable-capabilities", "status": 200,
+      "envelope": {
+        "request_id": "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+        "data": {"protocol_version": 1, "host_version": "0.0.0-dev", "active_profile_id": "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb", "monitor_state": "unavailable", "notification_permission": "unavailable", "coverage": {"state": "unknown"}}
+      }
+    },
+    {
+      "id": "rule-validation-summary", "status": 200,
+      "envelope": {
+        "request_id": "cccccccc-cccc-4ccc-8ccc-cccccccccccc",
+        "data": {"summary": "approval count is at least 3", "required_fields": ["approval_count"]}
+      }
     },
     {
       "id": "platform-unavailable", "status": 503,
