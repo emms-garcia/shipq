@@ -5,6 +5,7 @@ root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$root"
 
 target_arch="${1:-$(uname -m)}"
+sign_identity="${SHIPQ_CODE_SIGN_IDENTITY:--}"
 case "$target_arch" in
     arm64|x86_64) ;;
     *) printf 'Usage: bash scripts/build_macos.sh [arm64|x86_64]\n' >&2; exit 2 ;;
@@ -41,7 +42,8 @@ xcrun lipo -create "${helper_binaries[@]}" -output build/bin/debug/ShipqPlatform
 derived_data="$root/build/flutter/$target_arch"
 xcrun xcodebuild -workspace apps/desktop/macos/Runner.xcworkspace \
     -scheme Runner -configuration Debug -destination 'generic/platform=macOS' \
-    -derivedDataPath "$derived_data" ARCHS="$target_arch" ONLY_ACTIVE_ARCH=NO build -quiet
+    -derivedDataPath "$derived_data" ARCHS="$target_arch" ONLY_ACTIVE_ARCH=NO \
+    CODE_SIGN_IDENTITY=- build -quiet
 
 bundle="$root/build/macos/$target_arch/Shipq.app"
 ditto "$derived_data/Build/Products/Debug/Shipq.app" "$bundle"
@@ -64,9 +66,14 @@ xcrun lipo "$bundle/Contents/MacOS/Shipq" -verify_arch "$target_arch"
 plutil -lint "$helper/Contents/Info.plist" \
     "$bundle/Contents/Library/LaunchAgents/com.shipq.host.plist"
 
-codesign --force --sign - "$bundle/Contents/MacOS/shipq-host"
-codesign --force --sign - "$helper"
-codesign --force --sign - --preserve-metadata=entitlements "$bundle"
+codesign --force --sign "$sign_identity" --identifier com.shipq.host \
+    "$bundle/Contents/MacOS/shipq-host"
+codesign --force --sign "$sign_identity" "$helper"
+codesign --force --sign "$sign_identity" --preserve-metadata=entitlements "$bundle"
 codesign --verify --deep --strict "$bundle"
 
-printf '\nBuilt %s (ad-hoc development signature; no service installed)\n' "$bundle"
+if [[ "$sign_identity" == "-" ]]; then
+    printf '\nBuilt %s (ad-hoc development signature; no service installed)\n' "$bundle"
+else
+    printf '\nBuilt %s (identity %s; no service installed)\n' "$bundle" "$sign_identity"
+fi

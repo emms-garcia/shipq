@@ -2,10 +2,10 @@
 
 ## Status
 
-This is the implementation-phase run/validation contract. The application,
-Makefile targets, fixtures, and tests described below do not exist in this
-planning PR. Only the Spec Kit inspection commands in the final section are
-runnable now. Do not report the future application commands as passing checks.
+This is the implementation-phase run/validation contract. Foundation build,
+core/adapter/coverage, fixture-host, and desktop-fixture targets now exist.
+Later user-story commands remain planned until their corresponding tasks are
+implemented; do not report those future flows as passing checks.
 
 ## Prerequisites and planned setup
 
@@ -17,7 +17,7 @@ runnable now. Do not report the future application commands as passing checks.
 - Signing/notarization credentials are needed for distribution and the native
   notification/lifecycle acceptance spike, not for core unit tests.
 
-Planned setup after application scaffolding:
+Foundation setup:
 
 ```sh
 go mod download
