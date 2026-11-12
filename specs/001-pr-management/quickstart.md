@@ -2,10 +2,10 @@
 
 ## Status
 
-This is the implementation-phase run/validation contract. The application,
-Makefile targets, fixtures, and tests described below do not exist in this
-planning PR. Only the Spec Kit inspection commands in the final section are
-runnable now. Do not report the future application commands as passing checks.
+This is the implementation-phase run/validation contract. Foundation build,
+core/adapter/coverage, fixture-host, and desktop-fixture targets now exist.
+Later user-story commands remain planned until their corresponding tasks are
+implemented; do not report those future flows as passing checks.
 
 ## Prerequisites and planned setup
 
@@ -17,7 +17,7 @@ runnable now. Do not report the future application commands as passing checks.
 - Signing/notarization credentials are needed for distribution and the native
   notification/lifecycle acceptance spike, not for core unit tests.
 
-Planned setup after application scaffolding:
+Foundation setup:
 
 ```sh
 go mod download
@@ -118,6 +118,27 @@ builds. These are development tools, not a user-facing application CLI.
 
 These are opt-in checks on a signed development/release bundle, separate from
 routine fixture tests. No production PR mutation is automated by Shipq.
+
+### Personal signing setup
+
+Use only the developer team that owns this Shipq checkout. In Xcode, add that
+Apple Account under **Settings > Accounts**, create an **Apple Development**
+certificate, and use automatic signing for the `com.shipq.platform` helper
+bundle on the current Mac. The resulting Mac App Development profile must
+authorize the helper's application identifier and Keychain access group. Build
+with the certificate and profile explicitly selected:
+
+```sh
+SHIPQ_CODE_SIGN_IDENTITY="Apple Development: Your Name (CERTIFICATE_ID)" \
+SHIPQ_PLATFORM_PROVISIONING_PROFILE=/absolute/path/to/embedded.provisionprofile \
+make build-arm64
+```
+
+`scripts/build_macos.sh` rejects a missing or mismatched profile, validates its
+Team ID and `com.shipq.platform` application identifier, embeds it only in the
+nested helper, and verifies the final bundle. Do not use an employer/client
+certificate or provisioning profile for this acceptance path. Ad-hoc builds
+remain the default for routine local checks.
 
 - Connect using device flow, inspect scopes/identity, and authorize an
   organization if permitted. Confirm private data is visible only where allowed.

@@ -4,23 +4,27 @@ A local-first macOS app for organizing GitHub pull requests into flexible
 segments and receiving notifications when their membership changes.
 
 **Current state:** app foundation, Go rule/review core, SQLite initialization,
-the private local API library, its thin Dart client, and native capability
-adapters (T001-T018).
+private local API/Dart client, native capability adapters, composed host/UI
+runtime, isolated fixture tooling, and routine architecture/coverage CI.
 The core models stable identities and observations, reduces review snapshots
 to effective approval/participant facts, and validates/evaluates typed rules.
 The Flutter window still explains that GitHub connection and monitoring are
-not implemented. The bundled internal Go host remains an explicit stub that
-exits with status 78. The Swift helper handles private capability requests, but
-no production host/UI calls it yet. Normal app startup does not open a database,
-connect to GitHub, request permissions, or install a service.
+not implemented, but it can explicitly start/stop the bundled host, display its
+status, and request login-service registration through the desktop-owned native
+bridge. The host owns profile initialization, SQLite, and the private socket.
+Normal app startup does not open a database until the user starts the service,
+connect to GitHub, request notification permission, or silently install a service.
+T020-T021 are complete. T019 remains unchecked until a genuinely Apple-signed
+bundle proves Keychain, approval/login lifecycle, explicit stop, and notification
+submission with Flutter terminated; ad-hoc builds are not that evidence.
 There is no product CLI.
 
 ## Architecture
 
 The accepted design uses a hexagonal Go core, SQLite infrastructure adapters,
 Flutter presentation over a private Unix-socket API, and a separate native Swift
-helper for macOS capabilities. SQLite lifecycle/ownership and the local API
-library exist; production runtime integration is not wired up yet.
+helper for macOS capabilities. The minimal production composition now wires
+those pieces together; GitHub, PR browsing, and monitoring remain later slices.
 Export/import and cloud synchronization remain deferred.
 
 The review reducer counts distinct current approvers, retains submitted
@@ -62,9 +66,9 @@ Socket paths are at most 103 UTF-8 bytes, excluding the terminator, for macOS
 compatibility. A separate persistent `socket.lock` protects the runtime path.
 Live listeners/unrelated files/symlinks are never replaced; refused stale
 sockets can be recovered only while holding ownership. Shutdown retains
-ownership on timeout and removes only its own socket inode. No TCP listener
-or production host wiring is introduced by the socket library. The later
-composition must initialize the owned profile before starting this API.
+ownership on timeout and removes only its own socket inode. No TCP listener is
+introduced by the socket library. The host runtime initializes and owns the
+profile before starting this API and shuts it down before releasing ownership.
 
 The Dart `LocalClient` calls status and rule validation over the explicitly
 supplied Unix socket using `HttpClient.connectionFactory`. It disables proxies
@@ -77,8 +81,8 @@ is configurable. Timeouts cancel only their own I/O; client closure cancels all
 owned requests. The host remains authoritative for the independent 64 KiB rule limit.
 The device-session model consumes synthetic wire guidance only and rejects
 secret/unknown fields and unsafe verification URLs; no account route or OAuth
-exchange is implemented in Dart. No screen calls this client yet; runtime socket
-handoff and signed/sandboxed integration remain the later T019 gate. Shared
+exchange is implemented in Dart. The foundation screen calls status through this
+client after explicit host start; signed native acceptance remains the T019 gate. Shared
 design tokens/theming must precede feature-screen implementation.
 
 The host's profile initializer owns `<data-root>/<profile-uuid>/host.lock`
@@ -100,8 +104,9 @@ The initial schema contains the profile UUID binding, repository identity and
 discovery cache, an organization index, and resumable repository-refresh metadata.
 PR/review/account stores and mappings remain T030; segments, monitoring, and
 outbox tables belong to their later migrations. No secrets or OAuth tokens are
-stored. The entry-point stub does not call this initializer or create a real
-user profile yet.
+stored. The entry point creates or reloads one private active-profile UUID,
+initializes its database, serves the local API, and handles graceful signal
+shutdown without exposing a product CLI.
 
 The Swift capability helper accepts one bounded JSON request on stdin and
 returns one correlated response on stdout, then exits. Its Go adapter launches
@@ -122,11 +127,11 @@ submission is reported as ambiguous.
 
 `SMAppService.agent` resolves its plist in the **calling app's** bundle. The
 service wrapper therefore refuses to register the parent desktop app's agent
-from its nested helper. T019 must invoke it through the desktop-owned bridge,
-with the proper bundle metadata and explicit consent. The current helper
+from its nested helper. The Flutter runner now owns that bridge and exposes
+registration only through an explicit UI action. The current helper
 reports service ownership as unavailable rather than registering a different
 job. Registration/approval, explicit-stop persistence, signed Keychain/native
-permissions, sandbox handoff, and background lifecycle remain T019/later gates.
+permissions, and background lifecycle still require T019's Apple-signed evidence.
 Unbundled helper calls fail closed without touching Keychain or requesting
 notifications. Routine tests inject native adapters instead of using real user data.
 
@@ -159,8 +164,7 @@ Go dependencies are pinned in `go.mod`/`go.sum`: `modernc.org/sqlite` v1.62.0
 transitive `modernc.org/libc` version follows its module requirements. The domain
 uses the UUID utility for local IDs; the lifecycle adapter now uses SQLite and
 `golang.org/x/sys` v0.49.0 for filesystem protection/ownership primitives.
-The host entry-point stub uses neither. Commit `pubspec.lock` to keep
-application dependencies reproducible.
+Commit `pubspec.lock` to keep application dependencies reproducible.
 
 ## Setup and build
 
@@ -176,7 +180,7 @@ make build
 the Flutter debug app for the current Mac, and assembles
 `build/macos/<architecture>/Shipq.app`. The bundle includes
 `Contents/MacOS/shipq-host`,
-`Contents/Library/Helpers/ShipqPlatform.app`, and the inert launch-agent plist in
+`Contents/Library/Helpers/ShipqPlatform.app`, and the launch-agent plist in
 `Contents/Library/LaunchAgents/`.
 
 Use `make build-arm64` or `make build-intel` to select an architecture explicitly.
@@ -185,15 +189,26 @@ rejects multi-architecture verification used by Flutter 3.41.4. No shared SDK is
 patched, and universal Flutter release packaging is not provided by this slice.
 The host/helper binaries are universal in both bundles.
 
-These are **ad-hoc-signed development builds**, not signed/notarized distribution
-artifacts. Cross-compiling x86_64 does not prove execution on an Intel Mac or
-macOS 13. Signed service,
-Keychain, notification, and background-lifecycle acceptance is a later T019 gate.
-The generated Flutter sandbox entitlements are retained pending that gate.
-Nothing registers or starts the launch agent.
+By default these are **ad-hoc-signed development builds**, not signed/notarized
+distribution artifacts. To assemble an opt-in acceptance bundle, set
+`SHIPQ_CODE_SIGN_IDENTITY` to an installed Apple Development identity and
+`SHIPQ_PLATFORM_PROVISIONING_PROFILE` to an absolute Mac App Development profile
+for `com.shipq.platform` that authorizes its matching Keychain access group. The
+build validates that the profile, helper signature, and Apple team agree before
+embedding the profile. Never use an employer or client team for personal builds.
 
 ```sh
-# Hot-reload the presentation scaffold (does not launch the internal stubs).
+SHIPQ_CODE_SIGN_IDENTITY="Apple Development: Your Name (CERTIFICATE_ID)" \
+SHIPQ_PLATFORM_PROVISIONING_PROFILE=/absolute/path/to/embedded.provisionprofile \
+make build-arm64
+```
+
+Cross-compiling x86_64 does not prove execution on an Intel Mac or macOS 13.
+Signed service, notification, and background-lifecycle acceptance remain T019
+gates. Building alone never registers or starts the launch agent.
+
+```sh
+# Hot-reload the presentation scaffold.
 make run
 
 # Open the assembled debug app without the Flutter debugger.
@@ -202,9 +217,10 @@ open "build/macos/$(uname -m)/Shipq.app"
 
 ## Checks and focused tests
 
-`make check` checks toolchain pins, Go formatting/vet/race-enabled tests,
-Dart formatting/analysis/client and widget tests, fixture integrity, injected
-Swift capability tests/formatting, plist validity, and shell syntax.
+`make check` checks toolchain pins, architecture boundaries, validation-script
+tests, Go formatting/vet/race-enabled core and adapter suites, separate core
+coverage gates, Dart formatting/analysis/client and widget tests, fixture
+integrity, injected Swift capability tests/formatting, plist validity, and shell syntax.
 `make format` applies source formatting.
 Domain unit tests cover identity/observation invariants, fixture-backed review
 reduction, and the rule matrix, unknowns, summaries, and validation limits.
@@ -216,8 +232,8 @@ service evidence.
 SQLite tests use real temporary files, transactional upgrade/failure and
 cancellation cases, and WAL/constraint checks. Host tests use a real subprocess
 to prove ownership exclusion and recovery after abrupt process termination.
-CI and automated separate 90% domain/application coverage enforcement arrive
-with T021.
+CI enforces at least 90% independently for domain and application statements;
+the current foundation measures 99.4% and 100.0%, respectively.
 
 ```sh
 # One review regression, from the repository root.
@@ -270,17 +286,13 @@ make test-ui test-fixtures
 For independent domain and application aggregate statement coverage:
 
 ```sh
-mkdir -p build/coverage
-GOTOOLCHAIN=local go test -count=1 -race -coverpkg=./internal/domain/... \
-  -coverprofile=build/coverage/rule-domain.out ./internal/domain/...
-GOTOOLCHAIN=local go tool cover -func=build/coverage/rule-domain.out
-GOTOOLCHAIN=local go test -count=1 -race -coverpkg=./internal/application/... \
-  -coverprofile=build/coverage/rule-application.out ./internal/application/...
-GOTOOLCHAIN=local go tool cover -func=build/coverage/rule-application.out
+make test-core
+make test-adapters
+make check-core-coverage
 ```
 
-Read the combined profile's `total`, not the per-test-package percentages.
-The uncached run avoids mixing old source mappings into cross-package coverage.
+The coverage checker merges repeated blocks emitted by multiple package test
+binaries before enforcing each group and rejects empty executable groups.
 The application total covers implemented validation/status use cases, not empty
 port interfaces or unbuilt future operations.
 
@@ -288,8 +300,9 @@ The GitHub/protocol/scenario fixtures under `tests/fixtures/` are synthetic.
 Python integrity tests check pagination and references; Go review/schema tests
 and Dart client tests consume the same fixtures. None proves live provider
 normalization or real application transitions. No account credentials or OAuth registration are
-needed. Fixture-host targets are deliberately failing reservations until T020;
-core/adapter/coverage targets remain reserved until T021.
+needed. `make fixture-host` prints and writes an explicit handoff for a temporary
+profile; in a second terminal, `make run-desktop-fixture` launches Flutter against
+that socket. Test-only step controls live only under `tests/support`.
 
 The opt-in `TestSignedPlatformSmoke` requires `SHIPQ_PLATFORM_SMOKE=1` and an
 absolute `SHIPQ_SIGNED_APP` path to a genuinely development-signed bundle; it

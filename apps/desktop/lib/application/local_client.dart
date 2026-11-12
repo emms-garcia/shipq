@@ -5,7 +5,9 @@ import 'dart:typed_data';
 
 import 'local_models.dart';
 
+/// Sends typed requests to the host over its private Unix-socket HTTP API.
 class LocalClient {
+  /// Creates a client for an absolute Unix socket with a per-request deadline.
   LocalClient({
     required this.socketPath,
     this.timeout = const Duration(seconds: 10),
@@ -22,14 +24,20 @@ class LocalClient {
 
   static const _maxSocketPathBytes = 103;
   static const _maxBodyBytes = 1024 * 1024;
+
+  /// Absolute path of the host's Unix socket.
   final String socketPath;
+
+  /// Maximum time allowed for each request.
   final Duration timeout;
   final _active = <HttpClient>{};
   bool _closed = false;
 
+  /// Retrieves the host's current lifecycle and permission status.
   Future<LocalResponse<HostStatus>> getStatus() =>
       _request('GET', '/v1/status', HostStatus.fromJson);
 
+  /// Validates a rule definition without persisting it.
   Future<LocalResponse<RuleValidation>> validateRule(
     Map<String, Object?> definition,
   ) => _request(
@@ -39,6 +47,7 @@ class LocalClient {
     body: definition,
   );
 
+  /// Cancels active requests and prevents new requests from starting.
   void close() {
     _closed = true;
     for (final client in _active) {

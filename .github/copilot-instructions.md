@@ -8,14 +8,16 @@ domain library for stable identities, observations, effective reviews, and typed
 rule evaluation, plus an application rule-validation use case.
 SQLite lifecycle/migrations and a host profile-ownership initializer also exist.
 The local API library implements strict v1 schemas, status/rule-validation
-handlers, and owned private Unix sockets, but is not wired into the host yet.
+handlers, and owned private Unix sockets. The host initializes one owned profile
+before serving and shuts transport down before releasing ownership.
 Flutter has a thin typed Unix-socket client for status/rule validation, tested
-against shared fixtures and temporary sockets; no screen calls it yet.
+against shared fixtures and temporary sockets; the foundation screen uses status
+after an explicit host start.
 The Swift helper implements bounded private capability IPC and native wrappers;
-the Go macOS adapter invokes it through private pipes. The Flutter UI and
-internal Go host remain scaffolds/stubs, with no production runtime wiring.
-Synthetic fixtures and local build/check commands exist. The architecture below is the agreed
-target; GitHub access, user-record/PR stores, production IPC wiring, monitoring, and signed native acceptance
+the Go macOS adapter invokes it through private pipes. A desktop-owned bridge
+controls explicit host/service actions. Synthetic fixtures, an isolated scenario
+host, architecture/coverage checks, and CI exist. The architecture below is the agreed
+target; GitHub access, user-record/PR stores, monitoring, and signed native acceptance
 are not implemented yet.
 
 The active feature is recorded in `.specify/feature.json`. Read its `spec.md`
@@ -26,7 +28,8 @@ The initial feature lives in `specs/001-pr-management/`.
 
 - Use hexagonal architecture: a shared Go core owns business rules and
   application use cases; ports describe the external capabilities it needs.
-  Dependencies point inward. The core must not depend on Flutter,
+  Dependencies point inward and `scripts/check_architecture.py` enforces the Go
+  production boundaries. The core must not depend on Flutter,
   concrete GitHub clients, SQLite, or operating-system integrations.
 - The Flutter application is a presentation/driving adapter over Go application
   operations. It does not reimplement approval counting, filter evaluation,
@@ -86,8 +89,8 @@ The initial feature lives in `specs/001-pr-management/`.
 
 ## Agreed testing and coverage policy
 
-These are implementation and CI requirements. Domain and scaffold tests and
-local checks exist; grouped coverage enforcement and CI arrive with T021.
+These are implementation and CI requirements. Grouped coverage enforcement and
+routine macOS CI are implemented; signed/live checks remain opt-in.
 
 - Go domain rules use table-driven unit tests. Application use cases use fake
   ports, clocks, and GitHub responses so behavior is deterministic.
@@ -115,8 +118,8 @@ local checks exist; grouped coverage enforcement and CI arrive with T021.
   shared tool installations.
 - Run `make deps` after dependency-manifest changes or missing-dependency
   failures; keep the Go sums and Flutter application lockfile committed.
-- `make check` runs implemented Go, Dart client, and scaffold checks; it does not
-  claim the future core coverage gates. `make test-ui` and `make test-fixtures`
+- `make check` runs architecture, script, Go race, independent core coverage,
+  Dart/Flutter, fixture, and Swift checks. `make test-ui` and `make test-fixtures`
   run focused suites; `make test-platform` runs injected Swift capability tests.
   Signed platform smoke remains explicitly opt-in, not routine acceptance.
 - Follow `README.md` for focused rule/review tests and independent aggregate

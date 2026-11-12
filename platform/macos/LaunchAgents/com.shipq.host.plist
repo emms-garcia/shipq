@@ -7,7 +7,7 @@
     <key>BundleProgram</key>
     <string>Contents/MacOS/shipq-host</string>
     <key>RunAtLoad</key>
-    <false/>
+    <true/>
     <key>KeepAlive</key>
     <false/>
     <key>ProcessType</key>

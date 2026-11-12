@@ -42,7 +42,10 @@ import Security
       kSecAttrService as String: "com.shipq.github.oauth",
       kSecAttrAccount as String: try canonicalID(profile),
       kSecAttrSynchronizable as String: false,
+      // Data-protection Keychain items are isolated by the signed app's
+      // application identifier; the build embeds the matching profile/group.
       kSecUseDataProtectionKeychain as String: true,
+      // Capability calls must never trigger an implicit credential prompt.
       kSecUseAuthenticationContext as String: authentication,
     ]
   }
