@@ -190,12 +190,22 @@ patched, and universal Flutter release packaging is not provided by this slice.
 The host/helper binaries are universal in both bundles.
 
 By default these are **ad-hoc-signed development builds**, not signed/notarized
-distribution artifacts. Set `SHIPQ_CODE_SIGN_IDENTITY` to an installed Apple
-Development identity to assemble an opt-in acceptance bundle. Cross-compiling
-x86_64 does not prove execution on an Intel Mac or macOS 13. Signed service,
-Keychain, notification, and background-lifecycle acceptance is a later T019 gate.
-The generated Flutter sandbox entitlements are retained pending that gate.
-Building alone never registers or starts the launch agent.
+distribution artifacts. To assemble an opt-in acceptance bundle, set
+`SHIPQ_CODE_SIGN_IDENTITY` to an installed Apple Development identity and
+`SHIPQ_PLATFORM_PROVISIONING_PROFILE` to an absolute Mac App Development profile
+for `com.shipq.platform` that authorizes its matching Keychain access group. The
+build validates that the profile, helper signature, and Apple team agree before
+embedding the profile. Never use an employer or client team for personal builds.
+
+```sh
+SHIPQ_CODE_SIGN_IDENTITY="Apple Development: Your Name (CERTIFICATE_ID)" \
+SHIPQ_PLATFORM_PROVISIONING_PROFILE=/absolute/path/to/embedded.provisionprofile \
+make build-arm64
+```
+
+Cross-compiling x86_64 does not prove execution on an Intel Mac or macOS 13.
+Signed service, notification, and background-lifecycle acceptance remain T019
+gates. Building alone never registers or starts the launch agent.
 
 ```sh
 # Hot-reload the presentation scaffold.

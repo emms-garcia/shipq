@@ -1,7 +1,9 @@
 import 'dart:convert';
 
+/// Version negotiated by the Flutter client and local host.
 const localProtocolVersion = 1;
 
+/// Categories of failures returned by the local client boundary.
 enum LocalFailure {
   hostUnavailable,
   timeout,
@@ -11,7 +13,9 @@ enum LocalFailure {
   closed,
 }
 
+/// Describes a failed local host request without exposing remote internals.
 class LocalClientException implements Exception {
+  /// Creates an exception with an optional sanitized API failure envelope.
   LocalClientException(
     this.kind, {
     this.error,
@@ -19,23 +23,33 @@ class LocalClientException implements Exception {
     this.httpStatus,
   });
 
+  /// Broad local failure category.
   final LocalFailure kind;
+
+  /// Sanitized API error returned by the host, when available.
   final LocalApiError? error;
+
+  /// Request identifier associated with the failure, when available.
   final String? requestId;
+
+  /// HTTP status associated with the failure, when available.
   final int? httpStatus;
 
   @override
   String toString() => 'LocalClientException(${kind.name})';
 }
 
+/// Indicates that a local API response violates the wire schema.
 class LocalSchemaException implements Exception {
   @override
   String toString() => 'LocalSchemaException: Invalid local API response.';
 }
 
+/// Sanitized error payload returned by the local API.
 class LocalApiError {
   LocalApiError._(this.code, this.message, this.retryable, this.details);
 
+  /// Parses an API error object from JSON.
   factory LocalApiError.fromJson(Object? json) {
     final fields = _object(json, {'code', 'message', 'retryable', 'details'});
     final retryable = fields['retryable'];
@@ -48,15 +62,24 @@ class LocalApiError {
     );
   }
 
+  /// Stable machine-readable failure code.
   final String code;
+
+  /// User-safe explanation supplied by the host.
   final String message;
+
+  /// Whether retrying the request may succeed.
   final bool retryable;
+
+  /// Structured, immutable diagnostic details.
   final Map<String, Object?> details;
 }
 
+/// Envelope shared by successful and failed local API responses.
 class LocalEnvelope {
   LocalEnvelope._(this.requestId, this.data, this.error, this.meta);
 
+  /// Decodes a JSON response body into a validated envelope.
   factory LocalEnvelope.decode(String text) {
     try {
       return LocalEnvelope.fromJson(jsonDecode(text));
@@ -65,6 +88,7 @@ class LocalEnvelope {
     }
   }
 
+  /// Parses and validates an envelope object.
   factory LocalEnvelope.fromJson(Object? json) {
     final fields = _object(json, {'request_id', 'data', 'error', 'meta'});
     final requestId = _uuid(fields['request_id']);
@@ -78,20 +102,35 @@ class LocalEnvelope {
     );
   }
 
+  /// UUID echoed by the host for request correlation.
   final String requestId;
+
+  /// Immutable success payload, or null when the response is an error.
   final Map<String, Object?>? data;
+
+  /// Sanitized error payload, or null when the response succeeded.
   final LocalApiError? error;
+
+  /// Optional immutable response metadata.
   final Map<String, Object?>? meta;
 }
 
+/// Typed successful response returned by [LocalClient].
 class LocalResponse<T> {
+  /// Creates a typed response with optional immutable metadata.
   LocalResponse({required this.requestId, required this.data, this.meta});
 
+  /// UUID echoed by the host for request correlation.
   final String requestId;
+
+  /// Decoded response payload.
   final T data;
+
+  /// Optional immutable response metadata.
   final Map<String, Object?>? meta;
 }
 
+/// Host lifecycle, monitor, coverage, and permission status.
 class HostStatus {
   HostStatus._(
     this.protocolVersion,
@@ -102,6 +141,7 @@ class HostStatus {
     this.coverageState,
   );
 
+  /// Parses and validates a host status object.
   factory HostStatus.fromJson(Object? json) {
     final fields = _object(json, {
       'protocol_version',
@@ -126,17 +166,30 @@ class HostStatus {
     );
   }
 
+  /// Protocol version reported by the host.
   final int protocolVersion;
+
+  /// Host build version.
   final String hostVersion;
+
+  /// Active profile UUID.
   final String activeProfileId;
+
+  /// Current monitoring lifecycle state.
   final String monitorState;
+
+  /// Current native notification permission state.
   final String notificationPermission;
+
+  /// Current refresh coverage state.
   final String coverageState;
 }
 
+/// Result of validating a rule definition.
 class RuleValidation {
   RuleValidation._(this.summary, this.requiredFields);
 
+  /// Parses a validated rule summary and required field list.
   factory RuleValidation.fromJson(Object? json) {
     final fields = _object(json, {'summary', 'required_fields'});
     final requiredFields = fields['required_fields'];
@@ -147,11 +200,14 @@ class RuleValidation {
     );
   }
 
+  /// Human-readable rule summary.
   final String summary;
+
+  /// Fields required to evaluate the rule.
   final List<String> requiredFields;
 }
 
-// A wire-only fixture contract; device-flow routes arrive with the account slice.
+/// Wire-only device-flow fixture contract for the future account slice.
 class DeviceSession {
   DeviceSession._(
     this.id,
@@ -162,6 +218,7 @@ class DeviceSession {
     this.pollIntervalSeconds,
   );
 
+  /// Parses and validates a GitHub device-flow session.
   factory DeviceSession.fromJson(Object? json) {
     final fields = _object(json, {
       'id',
@@ -194,11 +251,22 @@ class DeviceSession {
     );
   }
 
+  /// Device-flow session UUID.
   final String id;
+
+  /// Current device-flow state.
   final String status;
+
+  /// GitHub verification URL.
   final Uri verificationUrl;
+
+  /// User code entered at the verification URL.
   final String userCode;
+
+  /// UTC instant at which the session expires.
   final DateTime expiresAt;
+
+  /// Minimum polling interval requested by GitHub.
   final int pollIntervalSeconds;
 }
 

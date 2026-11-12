@@ -4,27 +4,47 @@ import 'package:flutter/services.dart';
 import 'application/local_client.dart';
 import 'application/local_models.dart';
 
+/// Starts the Shipq desktop application.
 void main() => runApp(const ShipqApp());
 
+/// Signals that the local host cannot be reached or started.
 class HostUnavailable implements Exception {
+  /// Creates a host-unavailable signal.
   const HostUnavailable();
 }
 
+/// Abstracts host lifecycle and status operations for production and fixtures.
 abstract interface class HostConnector {
+  /// Returns the Unix socket path used by the host.
   Future<String> socketPath();
+
+  /// Starts the local host after explicit user intent.
   Future<void> startHost();
+
+  /// Stops the local host after explicit user intent.
   Future<void> stopHost();
+
+  /// Returns the current login-service registration state.
   Future<String> serviceStatus();
+
+  /// Requests login-service registration and returns its resulting state.
   Future<String> registerService();
+
+  /// Requests login-service removal and returns its resulting state.
   Future<String> unregisterService();
+
+  /// Retrieves host status through the supplied socket path.
   Future<HostStatus> status(String socketPath);
 }
 
+/// Connects the Flutter UI to the native platform bridge or a fixture socket.
 class PlatformHostConnector implements HostConnector {
+  /// Creates a connector backed by the native platform channel.
   const PlatformHostConnector();
   static const _channel = MethodChannel('com.shipq.desktop/platform');
   static const _fixtureSocket = String.fromEnvironment('SHIPQ_SOCKET_PATH');
 
+  /// Returns the configured fixture socket or the native host socket.
   @override
   Future<String> socketPath() async {
     if (_fixtureSocket.isNotEmpty) return _fixtureSocket;
@@ -33,29 +53,35 @@ class PlatformHostConnector implements HostConnector {
     return path;
   }
 
+  /// Starts the native host unless a fixture socket is configured.
   @override
   Future<void> startHost() async {
     if (_fixtureSocket.isEmpty) await _channel.invokeMethod<void>('startHost');
   }
 
+  /// Stops the native host unless a fixture socket is configured.
   @override
   Future<void> stopHost() async {
     if (_fixtureSocket.isEmpty) await _channel.invokeMethod<void>('stopHost');
   }
 
+  /// Reads native login-service state, or unavailable for fixtures.
   @override
   Future<String> serviceStatus() async => _fixtureSocket.isNotEmpty
       ? 'unavailable'
       : await _channel.invokeMethod<String>('serviceStatus') ?? 'unavailable';
 
+  /// Requests native login-service registration.
   @override
   Future<String> registerService() async =>
       await _channel.invokeMethod<String>('registerService') ?? 'unavailable';
 
+  /// Requests native login-service removal.
   @override
   Future<String> unregisterService() async =>
       await _channel.invokeMethod<String>('unregisterService') ?? 'unavailable';
 
+  /// Reads host status and maps transport failures to [HostUnavailable].
   @override
   Future<HostStatus> status(String socketPath) async {
     final client = LocalClient(socketPath: socketPath);
@@ -69,10 +95,15 @@ class PlatformHostConnector implements HostConnector {
   }
 }
 
+/// Root widget for the Shipq desktop application.
 class ShipqApp extends StatelessWidget {
+  /// Creates the app with an injectable host connector for tests and fixtures.
   const ShipqApp({super.key, this.connector = const PlatformHostConnector()});
+
+  /// Connector used to control and inspect the local host.
   final HostConnector connector;
 
+  /// Builds the desktop shell around the injected host connector.
   @override
   Widget build(BuildContext context) => MaterialApp(
     title: 'Shipq',
